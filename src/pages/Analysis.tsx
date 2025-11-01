@@ -23,9 +23,7 @@ export default function AnalysisPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1">
-        {source && (
-          <HistorianAgent context={{ title: source.value }} />
-        )}
+        <HistorianAgent context={{ title: source?.value || "PastPort Analysis" }} />
         <AnalysisView source={source} />
       </main>
     </div>
