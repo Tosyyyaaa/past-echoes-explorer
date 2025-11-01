@@ -22,8 +22,8 @@ const Index = () => {
         )}
       </main>
 
-      <footer className="text-center py-8 text-sm text-muted-foreground border-t border-border/50">
-        <p className="font-handwriting">
+      <footer className="text-center py-10 text-sm text-muted-foreground border-t-2 border-border">
+        <p className="font-sans font-medium uppercase tracking-wider">
           Uncover patterns, challenge narratives, understand history.
         </p>
       </footer>

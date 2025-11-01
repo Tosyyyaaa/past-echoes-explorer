@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['Spectral', 'serif'],
-        handwriting: ['Caveat', 'cursive'],
+        display: ['Playfair Display', 'serif'],
+        sans: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -98,17 +98,17 @@ export default {
             transform: "perspective(1000px) rotateY(0deg)",
           },
         },
-        "sketch-bounce": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-4px)" },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "ink-draw": "ink-draw 0.6s ease-out forwards",
-        "page-turn": "page-turn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards",
-        "sketch-bounce": "sketch-bounce 1s ease-in-out infinite",
+        "ink-draw": "ink-draw 0.5s ease-out forwards",
+        "page-turn": "page-turn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+        "fade-in": "fade-in 0.4s ease-out",
       },
     },
   },
