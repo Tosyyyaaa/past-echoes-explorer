@@ -1,18 +1,110 @@
-import { ArrowRight, TrendingUp, AlertCircle, Sparkles, Calendar, Link as LinkIcon, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  Link as LinkIcon,
+  Search,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 // removed quick search widget; reflowed layout
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { StartPayload } from "@/components/IntroSection";
 import VoiceAgent from "@/components/VoiceAgent";
+import type { AnalysisResult, NarrativeFacet, HistoricalEcho } from "@/lib/api";
 
 interface AnalysisViewProps {
   source?: StartPayload;
-  isVoicePlaying?: boolean;
+  analysis: AnalysisResult | null;
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export const AnalysisView = ({ source }: AnalysisViewProps) => {
+const renderFacet = (facet: NarrativeFacet) => (
+  <li key={facet.label} className="flex items-start gap-3">
+    <div className="w-1.5 h-1.5 bg-primary mt-2 flex-shrink-0" />
+    <div>
+      <p className="text-card-foreground font-sans font-semibold">{facet.label}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">{facet.description}</p>
+      {facet.supporting_quotes?.length > 0 && (
+        <ul className="mt-2 space-y-1 text-sm italic text-muted-foreground">
+          {facet.supporting_quotes.map((quote, idx) => (
+            <li key={idx}>"{quote}"</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </li>
+);
+
+const renderEcho = (echo: HistoricalEcho) => (
+  <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary" key={`${echo.historical_event}-${echo.year}`}>
+    <h4 className="font-bold text-2xl mb-4 text-primary font-display">
+      {echo.historical_event} {echo.year ? `(${echo.year})` : ""}
+    </h4>
+    <p className="text-card-foreground font-sans text-base leading-relaxed mb-6 voice-underline-target">
+      {echo.parallel_reasoning || echo.source_excerpt}
+    </p>
+    <div className="pt-6 border-t-2 border-border space-y-4">
+      <div>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+          Historical Outcome
+        </p>
+        <p className="text-card-foreground font-sans text-base leading-relaxed">
+          {echo.consequences_short}
+        </p>
+        {echo.consequences_mid && (
+          <p className="text-sm text-muted-foreground leading-relaxed mt-2">{echo.consequences_mid}</p>
+        )}
+        {echo.consequences_long && (
+          <p className="text-sm text-muted-foreground leading-relaxed mt-2">{echo.consequences_long}</p>
+        )}
+      </div>
+      {echo.source_url && (
+        <a
+          href={echo.source_url}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm text-primary underline underline-offset-4"
+        >
+          View source
+        </a>
+      )}
+    </div>
+  </div>
+);
+
+export const AnalysisView = ({
+  source,
+  analysis,
+  isLoading,
+  error,
+  onRetry,
+}: AnalysisViewProps) => {
+  const emotionalCues = analysis?.narrative_analysis.emotional_cues ?? [];
+  const facets = analysis?.narrative_analysis.narrative_facets ?? [];
+  const echoes = analysis?.echoes ?? [];
+  const primaryEcho = echoes[0];
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-10 animate-page-turn">
+      {isLoading && (
+        <Card className="border-2 border-border bg-card shadow-xl p-4 text-sm text-muted-foreground">
+          Running analysis… this may take a few moments while we ask the models.
+        </Card>
+      )}
+      {error && (
+        <Card className="border-2 border-destructive bg-destructive/10 text-destructive shadow-xl p-4 flex items-center justify-between gap-4">
+          <span>{error}</span>
+          {onRetry && (
+            <Button variant="outline" onClick={onRetry}>
+              Try again
+            </Button>
+          )}
+        </Card>
+      )}
       {/* Top row: long narrow article widget on the left, analysis cards on the right */}
       <div className="grid gap-8 md:grid-cols-[560px_1fr] items-stretch">
         {/* Article widget (narrow, scrollable if long) */}
@@ -31,39 +123,36 @@ export const AnalysisView = ({ source }: AnalysisViewProps) => {
           </div>
 
           <h2 data-voice-title className="text-3xl font-bold font-display mb-4 text-primary leading-tight">
-            {source?.mode === "search" && source?.value
-              ? source.value
-              : source?.mode === "link" && source?.value
-              ? "Analysing submitted article"
-              : "Rising Tensions in Global Trade Negotiations"}
+            {analysis?.article.title ??
+              (source?.mode === "search" && source?.value
+                ? source.value
+                : source?.mode === "link"
+                ? "Analyzing submitted article"
+                : "Awaiting article")}
           </h2>
 
           <div data-voice-overview className="space-y-6 text-card-foreground font-sans text-base leading-relaxed">
-            <p className="voice-underline-target">
-              Global markets faced significant turbulence today as trade negotiations 
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-medium border-b-2 border-primary/40">
-                reached a critical impasse
-              </span>
-              between major economic powers. Analysts warn of
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-medium border-b-2 border-primary/40">
-                potential cascading effects
-              </span>
-              on consumer prices and employment.
-            </p>
-            <div className="pl-4 border-l-4 border-accent my-4 py-1">
-              <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Fear appeal detected
+            {analysis ? (
+              <>
+                <p className="voice-underline-target">
+                  {analysis.narrative_analysis.article_summary ||
+                    "The narrative summary will appear here once analysis completes."}
+                </p>
+                {facets.slice(0, 1).map((facet) => (
+                  <div className="pl-4 border-l-4 border-accent my-4 py-1" key={facet.label}>
+                    <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      {facet.label}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{facet.description}</p>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="italic text-muted-foreground">
+                Submit an article or search term to generate a past echo.
               </p>
-            </div>
-            <p className="voice-underline-target">
-              Industry leaders expressed concern over the breakdown in diplomatic channels, 
-              with some calling it
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-semibold border-b-2 border-primary/50">
-                "a crisis of unprecedented proportions"
-              </span>
-              that could reshape international commerce for decades.
-            </p>
+            )}
           </div>
         </Card>
 
@@ -79,26 +168,48 @@ export const AnalysisView = ({ source }: AnalysisViewProps) => {
             <div className="space-y-6">
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Tone</p>
-                <p className="text-card-foreground font-sans text-base">Alarmist, urgency-driven</p>
+                <p className="text-card-foreground font-sans text-base">
+                  {analysis?.narrative_analysis.tone ?? "—"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Emotional Cues</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Fear</Badge>
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Uncertainty</Badge>
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Crisis</Badge>
+                  {emotionalCues.length > 0 ? (
+                    emotionalCues.map((cue) => (
+                      <Badge key={cue} variant="outline" className="bg-highlight/40 border-border font-sans">
+                        {cue}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Bias Perspective</p>
-                <p className="text-card-foreground font-sans text-base">Economic catastrophization</p>
+                <p className="text-card-foreground font-sans text-base">
+                  {analysis?.narrative_analysis.bias_frame ?? "—"}
+                </p>
               </div>
               <div className="pt-6 border-t-2 border-border">
                 <p className="text-sm text-muted-foreground font-sans flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Similar to 2008 financial crisis framing
+                  {primaryEcho
+                    ? `${primaryEcho.historical_event}${primaryEcho.year ? ` (${primaryEcho.year})` : ""}`
+                    : "Historical echo will appear here"}
                 </p>
               </div>
+              {facets.length > 0 && (
+                <div className="pt-6 border-t border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                    Narrative Facets
+                  </p>
+                  <ul className="space-y-3">
+                    {facets.slice(0, 3).map(renderFacet)}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
         </div>
@@ -116,31 +227,25 @@ export const AnalysisView = ({ source }: AnalysisViewProps) => {
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 bg-primary" />
             <div className="h-0.5 flex-1 bg-gradient-to-r from-primary to-transparent" />
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">1930</span>
+            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              {primaryEcho?.year || "—"}
+            </span>
           </div>
           
-          <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary">
-            <h4 className="font-bold text-2xl mb-4 text-primary font-display">The Smoot-Hawley Tariff Act (1930)</h4>
-            <p className="text-card-foreground font-sans text-base leading-relaxed mb-6 voice-underline-target">
-              During the Great Depression, newspapers used similarly alarmist language to describe 
-              trade disputes. The rhetoric of "unprecedented crisis" and "cascading effects" 
-              dominated coverage, much like today's narrative.
-            </p>
-            <div className="pt-6 border-t-2 border-border">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Historical Outcome:</p>
-              <p className="text-card-foreground font-sans text-base leading-relaxed voice-underline-target">
-                The tariff act contributed to a 66% decline in global trade and deepened the Depression. 
-                However, fear-driven reporting often oversimplified complex economic factors, 
-                missing nuance that could have fostered more measured policy responses.
+          {primaryEcho ? renderEcho(primaryEcho) : (
+            <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary">
+              <p className="text-muted-foreground italic">
+                Historical echoes will populate here after analysis completes.
               </p>
             </div>
-          </div>
+          )}
           
           <div className="flex items-center gap-4">
             <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent to-primary" />
             <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Present Day</span>
             <div className="w-2 h-2 bg-primary" />
           </div>
+          {echoes.slice(1).map(renderEcho)}
         </div>
       </Card>
     </div>
