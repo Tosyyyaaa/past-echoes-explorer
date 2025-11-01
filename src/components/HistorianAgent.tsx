@@ -75,7 +75,7 @@ export default function HistorianAgent({ context }: HistorianAgentProps) {
   }, [isListening]);
 
   return (
-    <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 60 }}>
+    <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999 }}>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <button
