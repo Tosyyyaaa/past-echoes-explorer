@@ -8,7 +8,7 @@ import httpx
 
 from .prompts import build_perplexity_prompt
 from .schemas import Article, HistoricalEcho, NarrativeFacet
-from .utils import parse_json_payload
+from .utils import parse_json_payload, strip_code_fence
 
 
 async def call_perplexity_json(
@@ -75,22 +75,6 @@ def _sort_and_limit(entries: List[dict], limit: int = 6) -> List[dict]:
     return sorted_entries[:limit]
 
 
-def _strip_code_fence(payload: str) -> str:
-    text = payload.strip()
-    if text.startswith("```"):
-        text = text[3:]
-        if text.startswith("json"):
-            text = text[4:]
-        text = text.rstrip("`").strip()
-    lower = text.lower()
-    prefixes = ("json|", "json |", "json:", "json")
-    for prefix in prefixes:
-        if lower.startswith(prefix):
-            text = text[len(prefix):]
-            break
-    return text.strip(" :\n\t")
-
-
 async def request_historical_echoes(
     *,
     article: Article,
@@ -110,7 +94,7 @@ async def request_historical_echoes(
         temperature=0,
     )
 
-    cleaned = _strip_code_fence(content)
+    cleaned = strip_code_fence(content)
     echoes_raw = _sort_and_limit(_safe_parse_echoes(cleaned))
     return [
         HistoricalEcho(

@@ -10,7 +10,7 @@ from .article import fetch_article_from_url
 from .openai_client import call_openai_json
 from .perplexity_client import call_perplexity_json
 from .schemas import Article
-from .utils import parse_json_payload
+from .utils import parse_json_payload, strip_code_fence
 
 
 @dataclass
@@ -77,17 +77,25 @@ async def _fetch_candidates(
         model=model,
         temperature=0,
     )
+    cleaned_response = strip_code_fence(response_text)
     try:
-        parsed = parse_json_payload(response_text, "Perplexity article discovery response")
+        parsed = parse_json_payload(cleaned_response, "Perplexity article discovery response")
     except RuntimeError as exc:
-        response_text_clean = response_text.strip()
+        response_text_clean = cleaned_response.strip()
         if response_text_clean.startswith("[") and response_text_clean.endswith("]"):
             try:
                 parsed = {"articles": json.loads(response_text_clean)}
             except Exception as inner_exc:  # noqa: BLE001
                 raise ValueError("Failed to parse article candidates from search.") from inner_exc
         else:
-            raise ValueError("Failed to parse article candidates from search.") from exc
+            block = _extract_json_block(response_text_clean)
+            if block:
+                try:
+                    parsed = parse_json_payload(block, "Perplexity article discovery response (fallback)")
+                except RuntimeError as inner_exc:  # noqa: BLE001
+                    raise ValueError("Failed to parse article candidates from search.") from inner_exc
+            else:
+                raise ValueError("Failed to parse article candidates from search.") from exc
 
     articles = parsed.get("articles", [])
     return [article for article in articles if isinstance(article, dict) and article.get("url")]
@@ -165,3 +173,13 @@ def _build_candidate_url_list(selection: ArticleSelection, candidates: List[dict
         append(candidate.get("url"))
 
     return ordered_urls
+
+
+def _extract_json_block(text: str) -> Optional[str]:
+    """Attempt to recover first JSON object from free-form text."""
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    candidate = text[start : end + 1]
+    return candidate.strip()

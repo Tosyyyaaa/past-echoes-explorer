@@ -10,10 +10,12 @@ def build_narrative_prompt(article: Optional[Article], article_text: str) -> str
     author = article.author if article and article.author else "Unknown"
     return (
         "You are a narrative analyst for PastPort. "
-        "Identify rhetoric without guessing political leanings. "
-        "Return strict JSON with these keys: "
-        "articleSummary, tone, emotionalCues (array), biasFrame, "
-        "narrativeFacets (array with label, description, supportingQuotes, confidence).\n"
+        "Keep answers extremely concise (max two sentences per field). "
+        "Avoid flowery language. "
+        "Return JSON with keys: "
+        "articleSummary (<=160 chars), tone (<=3 words), emotionalCues (max 4 entries), "
+        "biasFrame (<=160 chars), narrativeFacets (array up to 3 items, each with label <=4 words, "
+        "description <=140 chars, supportingQuotes max 1 short quote, confidence).\n"
         f"Article Title: {heading}\n"
         f"Author: {author}\n"
         "Article Body:\n"
@@ -34,4 +36,3 @@ def build_perplexity_prompt(facet: NarrativeFacet, article: Optional[Article]) -
         "resonance_score (0-1), tags (array). "
         "Only include well-sourced examples with citations."
     )
-

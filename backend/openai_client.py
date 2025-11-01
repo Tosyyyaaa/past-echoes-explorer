@@ -61,12 +61,23 @@ async def call_openai_json(
 def _parse_narrative_facets(data: List[dict]) -> List[NarrativeFacet]:
     facets: List[NarrativeFacet] = []
     for entry in data or []:
+        quotes_raw = entry.get("supportingQuotes")
+        if isinstance(quotes_raw, list):
+            quotes = [str(q).strip() for q in quotes_raw if str(q).strip()][:1]
+        elif isinstance(quotes_raw, str) and quotes_raw.strip():
+            quotes = [quotes_raw.strip()]
+        else:
+            quotes = []
+
+        confidence_raw = entry.get("confidence", "medium")
+        confidence = str(confidence_raw)
+
         facets.append(
             NarrativeFacet(
                 label=entry.get("label", "Untitled Facet"),
                 description=entry.get("description", ""),
-                supporting_quotes=entry.get("supportingQuotes") or [],
-                confidence=entry.get("confidence", "medium"),
+                supporting_quotes=quotes,
+                confidence=confidence,
             )
         )
     return facets
@@ -88,15 +99,15 @@ async def request_narrative_analysis(
             "You are a meticulous narrative analyst. Respond ONLY with valid JSON matching the requested schema."
         ),
         temperature=0.2,
-        max_tokens=1800,
+        max_tokens=1200,
     )
     parsed = parse_json_payload(raw, "OpenAI narrative response")
 
     facets = _parse_narrative_facets(parsed.get("narrativeFacets", []))
     return NarrativeAnalysis(
         article_summary=parsed.get("articleSummary", ""),
-        tone=parsed.get("tone", ""),
-        emotional_cues=parsed.get("emotionalCues", []) or [],
-        bias_frame=parsed.get("biasFrame", ""),
+        tone=str(parsed.get("tone", ""))[:40],
+        emotional_cues=[str(item) for item in (parsed.get("emotionalCues", []) or [])][:4],
+        bias_frame=str(parsed.get("biasFrame", "")),
         narrative_facets=facets,
     )
