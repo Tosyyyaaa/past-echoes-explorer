@@ -65,12 +65,20 @@ export default function Timeline3D() {
     setCurrentEventIndex(0);
   }, [selectedPeriod]);
 
-  // Auto-scrolling: fast cycle through filtered events
+  // Auto-scrolling: fast, stop at last event (no wrap)
   useEffect(() => {
     if (!scrollContainerRef.current || filteredEvents.length === 0) return;
+    // If we're at the last event, stop scheduling further advances
+    if (currentEventIndex >= filteredEvents.length - 1) {
+      if (autoScrollTimeoutRef.current) {
+        clearTimeout(autoScrollTimeoutRef.current);
+        autoScrollTimeoutRef.current = null;
+      }
+      return;
+    }
     if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
     autoScrollTimeoutRef.current = setTimeout(() => {
-      setCurrentEventIndex((prev) => (prev + 1) % filteredEvents.length);
+      setCurrentEventIndex((prev) => Math.min(prev + 1, filteredEvents.length - 1));
     }, 600);
     return () => {
       if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
