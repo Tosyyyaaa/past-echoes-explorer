@@ -39,8 +39,10 @@ const renderFacet = (facet: NarrativeFacet) => (
   </li>
 );
 
-const renderEcho = (echo: HistoricalEcho) => (
-  <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary" key={`${echo.historical_event}-${echo.year}`}>
+const renderEcho = (echo: HistoricalEcho) => {
+  const resonancePercent = Math.round((echo.resonance_score ?? 0) * 100);
+  return (
+  <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary h-full flex flex-col min-w-[300px]">
     <h4 className="font-bold text-2xl mb-4 text-primary font-display">
       {echo.historical_event} {echo.year ? `(${echo.year})` : ""}
     </h4>
@@ -48,6 +50,10 @@ const renderEcho = (echo: HistoricalEcho) => (
       {echo.parallel_reasoning || echo.source_excerpt}
     </p>
     <div className="pt-6 border-t-2 border-border space-y-4">
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span className="uppercase tracking-wider font-semibold text-xs">Resonance</span>
+        <span className="font-semibold text-primary">{resonancePercent}%</span>
+      </div>
       <div>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
           Historical Outcome
@@ -62,19 +68,20 @@ const renderEcho = (echo: HistoricalEcho) => (
           <p className="text-sm text-muted-foreground leading-relaxed mt-2">{echo.consequences_long}</p>
         )}
       </div>
-      {echo.source_url && (
-        <a
-          href={echo.source_url}
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm text-primary underline underline-offset-4"
-        >
-          View source
-        </a>
-      )}
     </div>
+    {echo.source_url && (
+      <a
+        href={echo.source_url}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm text-primary underline underline-offset-4 mt-auto"
+      >
+        View source
+      </a>
+    )}
   </div>
-);
+  );
+};
 
 export const AnalysisView = ({
   source,
@@ -218,34 +225,28 @@ export const AnalysisView = ({
 
       {/* Historical Echo */}
       <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 md:p-10">
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <Calendar className="w-7 h-7 text-primary" strokeWidth={2} />
           <h3 className="text-3xl font-bold font-display text-primary">Echo from the Past</h3>
         </div>
-        
-        <div className="space-y-8" data-voice-echo>
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 bg-primary" />
-            <div className="h-0.5 flex-1 bg-gradient-to-r from-primary to-transparent" />
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-              {primaryEcho?.year || "—"}
-            </span>
-          </div>
-          
-          {primaryEcho ? renderEcho(primaryEcho) : (
+        <div className="space-y-4" data-voice-echo>
+          {echoes.length > 0 ? (
+            <div className="overflow-x-auto pb-2">
+              <div className="grid gap-6 grid-cols-[repeat(3,minmax(300px,1fr))] min-w-[960px]">
+                {echoes.map((echo) => (
+                  <div key={`${echo.historical_event}-${echo.year}`} className="h-full">
+                    {renderEcho(echo)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
             <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary">
               <p className="text-muted-foreground italic">
                 Historical echoes will populate here after analysis completes.
               </p>
             </div>
           )}
-          
-          <div className="flex items-center gap-4">
-            <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent to-primary" />
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Present Day</span>
-            <div className="w-2 h-2 bg-primary" />
-          </div>
-          {echoes.slice(1).map(renderEcho)}
         </div>
       </Card>
     </div>

@@ -11,6 +11,41 @@ from .schemas import Article, HistoricalEcho, NarrativeFacet
 from .utils import parse_json_payload
 
 
+def _looks_like_nested_json(item: dict) -> bool:
+    for key in ("historical_event", "source_excerpt", "parallel_reasoning", "consequences_short"):
+        value = item.get(key)
+        if isinstance(value, str) and value.lstrip().startswith(("[", "\n")):
+            return True
+    return False
+
+
+def _sort_and_limit(entries: List[dict], limit: int = 6) -> List[dict]:
+    def resonance(entry: dict) -> float:
+        try:
+            return float(entry.get("resonance_score", 0.0))
+        except (TypeError, ValueError):
+            return 0.0
+
+    sorted_entries = sorted(entries, key=resonance, reverse=True)
+    return sorted_entries[:limit]
+
+
+def _strip_code_fence(payload: str) -> str:
+    text = payload.strip()
+    if text.startswith("```"):
+        text = text[3:]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.rstrip("`").strip()
+    lower = text.lower()
+    prefixes = ("json|", "json |", "json:", "json")
+    for prefix in prefixes:
+        if lower.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    return text.strip(" :\n\t")
+
+
 async def request_historical_echoes(
     *,
     article: Article,
@@ -56,7 +91,8 @@ async def request_historical_echoes(
     if not isinstance(content, str):
         raise RuntimeError("Perplexity response content is not a string.")
 
-    echoes_raw = _safe_parse_echoes(content)
+    cleaned = _strip_code_fence(content)
+    echoes_raw = _sort_and_limit(_safe_parse_echoes(cleaned))
     return [
         HistoricalEcho(
             historical_event=item.get("historical_event", "Unknown event"),
@@ -79,12 +115,22 @@ def _safe_parse_echoes(payload: str) -> List[dict]:
     try:
         parsed = parse_json_payload(payload, "Perplexity echoes response")
         if isinstance(parsed, list):
-            return parsed
+            return [item for item in parsed if not _looks_like_nested_json(item)]
         if isinstance(parsed, dict) and "echoes" in parsed:
             echoes = parsed["echoes"]
-            return echoes if isinstance(echoes, list) else []
+            if isinstance(echoes, list):
+                return [item for item in echoes if not _looks_like_nested_json(item)]
         return []
     except RuntimeError:
+        # Attempt to recover simple list formats separated by newlines
+        stripped = payload.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            try:
+                parsed_list = json.loads(stripped)
+                if isinstance(parsed_list, list):
+                    return [item for item in parsed_list if not _looks_like_nested_json(item)]
+            except Exception:
+                pass
         # fallback: heuristically wrap plain text
         return [
             {
@@ -101,4 +147,3 @@ def _safe_parse_echoes(payload: str) -> List[dict]:
                 "tags": [],
             }
         ]
-
