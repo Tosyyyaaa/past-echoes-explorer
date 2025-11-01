@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { AnalysisView } from "@/components/AnalysisView";
+import HistorianAgent from "@/components/HistorianAgent";
 import type { StartPayload } from "@/components/IntroSection";
 
 function useQuery(): URLSearchParams {
@@ -22,6 +23,9 @@ export default function AnalysisPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1">
+        {source && (
+          <HistorianAgent context={{ title: source.value }} />
+        )}
         <AnalysisView source={source} />
       </main>
     </div>
