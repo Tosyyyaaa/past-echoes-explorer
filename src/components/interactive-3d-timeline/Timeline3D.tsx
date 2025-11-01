@@ -94,7 +94,7 @@ export default function Timeline3D() {
   }, [currentEventIndex]);
 
   return (
-    <div ref={containerRef} className="w-full h-screen bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden">
       <div className="h-full w-full flex">
         {/* Left: Timeline */}
         <div className="relative flex-[2] min-w-0 h-full">
@@ -196,7 +196,7 @@ export default function Timeline3D() {
         </div>
 
         {/* Right: Search / Link Analyse Widget */}
-        <aside className="w-full max-w-md h-full border-l border-[#d4af37]/20 bg-black/30 backdrop-blur px-5 py-6 overflow-hidden">
+        <aside className="w-full max-w-md h-full border-l border-[#d4af37]/20 bg-black/30 backdrop-blur px-5 py-6 overflow-hidden sticky top-0">
           <div className="h-full flex flex-col gap-5">
             <div className="paper-surface border-2 border-[#d4af37]/30 rounded p-4">
               <Tabs defaultValue="search" onValueChange={(v) => { setWidgetMode(v as any); setWidgetValue(""); }}>
