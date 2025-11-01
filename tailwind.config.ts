@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        serif: ['Spectral', 'serif'],
+        handwriting: ['Caveat', 'cursive'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -47,16 +51,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
-        },
+        ink: "hsl(var(--ink))",
+        parchment: "hsl(var(--parchment))",
+        ochre: "hsl(var(--ochre))",
+        highlight: "hsl(var(--highlight))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -80,10 +78,37 @@ export default {
             height: "0",
           },
         },
+        "ink-draw": {
+          from: {
+            opacity: "0",
+            transform: "translateY(10px)",
+          },
+          to: {
+            opacity: "1",
+            transform: "translateY(0)",
+          },
+        },
+        "page-turn": {
+          from: {
+            opacity: "0",
+            transform: "perspective(1000px) rotateY(-15deg)",
+          },
+          to: {
+            opacity: "1",
+            transform: "perspective(1000px) rotateY(0deg)",
+          },
+        },
+        "sketch-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "ink-draw": "ink-draw 0.6s ease-out forwards",
+        "page-turn": "page-turn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+        "sketch-bounce": "sketch-bounce 1s ease-in-out infinite",
       },
     },
   },
