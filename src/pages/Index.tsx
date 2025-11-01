@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
-import { IntroSection, type StartPayload } from "@/components/IntroSection";
+import { IntroSection } from "@/components/IntroSection";
+import type { StartPayload } from "@/components/IntroSection";
 import { AnalysisView } from "@/components/AnalysisView";
-import { analyzeArticle, clearOutput, type AnalysisResult } from "@/lib/api";
+import { analyzeArticle, clearOutput } from "@/lib/api";
+import type { AnalysisResult } from "@/lib/api";
 
 const Index = () => {
   const [showAnalysis, setShowAnalysis] = useState(false);
@@ -79,15 +81,6 @@ const Index = () => {
           />
         )}
       </main>
-
-      <footer className="text-center py-10 text-sm text-muted-foreground border-t-2 border-border">
-        <div className="fade-up-slow">
-          <p className="font-display italic text-sm">
-            "Those who cannot remember the past are condemned to repeat it."
-          </p>
-          <p className="text-xs text-muted-foreground mt-2 font-medium">— George Santayana</p>
-        </div>
-      </footer>
     </div>
   );
 };

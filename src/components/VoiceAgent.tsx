@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface VoiceAgentProps {
   onPlayStateChange?: (isPlaying: boolean) => void;
@@ -6,11 +7,23 @@ interface VoiceAgentProps {
 }
 
 export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAgentProps) => {
-  const [expanded, setExpanded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
   const lastHighlightedRef = useRef<HTMLElement | null>(null);
+  const currentIndexRef = useRef<number>(0);
+  const nodesRef = useRef<HTMLElement[]>([]);
+  const voiceUsedRef = useRef<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<"historian" | "storyteller" | "analyst">("historian");
+  // Chat UI removed — keeping only voice narration controls
+
+  const VOICES: Record<string, { id: string; label: string } > = {
+    historian: { id: "21m00Tcm4TlvDq8ikWAM", label: "Historian" }, // calm, authoritative
+    storyteller: { id: "AZnzlk1XvdvUeBnXmlld", label: "Storyteller" }, // warm, expressive
+    analyst: { id: "EXAVITQu4vr4xnSDxMaL", label: "Analyst" }, // neutral, concise
+  };
 
   const getNarrationNodes = useCallback(() => {
     const nodes = [
@@ -21,80 +34,170 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
   }, []);
 
   const clearAllHighlights = () => {
-    document.querySelectorAll('.voice-highlight').forEach((el) => el.classList.remove('voice-highlight'));
+    document.querySelectorAll('.voice-highlight').forEach((el) => el.classList.remove('voice-highlight', 'shimmer'));
     lastHighlightedRef.current = null;
   };
 
+  const highlightNode = (node: HTMLElement | null) => {
+    if (!node) return;
+    if (lastHighlightedRef.current && lastHighlightedRef.current !== node) {
+      lastHighlightedRef.current.classList.remove('voice-highlight', 'shimmer');
+    }
+    node.classList.add('voice-highlight', 'shimmer');
+    lastHighlightedRef.current = node;
+  };
+
+  // Highlighting is handled per-paragraph during playback only
+
   const stopAll = useCallback(() => {
-    if (speechSynthesis.speaking || speechSynthesis.pending) {
-      speechSynthesis.cancel();
+    try {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.onended = null;
+        audio.onpause = null;
+        audio.ontimeupdate = null;
+        audio.pause();
+        audio.currentTime = 0;
+      }
+      if (audioUrlRef.current) {
+        URL.revokeObjectURL(audioUrlRef.current);
+        audioUrlRef.current = null;
+      }
+    } catch {
+      // noop
     }
     setIsPlaying(false);
     setIsPaused(false);
+    setIsLoading(false);
     onPlayStateChange?.(false);
     clearAllHighlights();
   }, [onPlayStateChange]);
 
-  const play = useCallback(() => {
-    try {
-      clearAllHighlights();
-      const nodes = getNarrationNodes();
-      if (!nodes.length) return;
+  const fetchTtsBlob = async (text: string, voiceId: string) => {
+    const resp = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice_id: voiceId }),
+    });
+    if (!resp.ok) {
+      const msg = await resp.text().catch(() => 'TTS failed');
+      throw new Error(msg || 'TTS failed');
+    }
+    const blob = await resp.blob();
+    return blob;
+  };
 
-      nodes.forEach((node, index) => {
-        const text = node.innerText.trim();
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.95;
-        u.pitch = 1.0;
-        u.onstart = () => {
-          // transition highlight
-          if (lastHighlightedRef.current && lastHighlightedRef.current !== node) {
-            lastHighlightedRef.current.classList.remove('voice-highlight');
-          }
-          node.classList.add('voice-highlight');
-          lastHighlightedRef.current = node;
-        };
-        u.onend = () => {
-          // allow smooth fade out when moving to the next
-          if (index === nodes.length - 1) {
-            setIsPlaying(false);
-            setIsPaused(false);
-            onPlayStateChange?.(false);
-            // remove all highlights at full stop
-            clearAllHighlights();
-          }
-        };
-        u.onerror = () => {
-          setIsPlaying(false);
-          setIsPaused(false);
-          onPlayStateChange?.(false);
-          clearAllHighlights();
-        };
-        speechSynthesis.speak(u);
-      });
+  const playParagraphAt = useCallback(async (index: number) => {
+    const nodes = nodesRef.current;
+    if (!nodes.length || index < 0 || index >= nodes.length) {
+      stopAll();
+      return;
+    }
+    currentIndexRef.current = index;
+    const node = nodes[index];
+    const text = node?.innerText?.trim() || '';
+    if (!text) {
+      // skip empty
+      playParagraphAt(index + 1);
+      return;
+    }
+    try {
+      setIsLoading(true);
+      highlightNode(node);
+      const voiceId = VOICES[selectedVoice].id;
+      voiceUsedRef.current = voiceId;
+      const blob = await fetchTtsBlob(text, voiceId);
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      audioUrlRef.current = url;
+      let audio = audioRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audioRef.current = audio;
+      }
+      audio.src = url;
+      audio.onended = () => {
+        // move to next paragraph
+        playParagraphAt(currentIndexRef.current + 1);
+      };
+      audio.onpause = () => {
+        setIsPaused(true);
+        setIsPlaying(false);
+        onPlayStateChange?.(false);
+        clearAllHighlights();
+      };
+      audio.ontimeupdate = () => {
+        // reserved for future per-phrase sync
+      };
+      await audio.play();
       setIsPlaying(true);
       setIsPaused(false);
       onPlayStateChange?.(true);
-    } catch {
-      // ignore
+    } catch (err: any) {
+      const message = typeof err?.message === 'string' ? err.message : 'Narration failed';
+      if (message.includes('Missing ELEVENLABS_API_KEY')) {
+        toast({ title: 'API key missing', description: 'Set ELEVENLABS_API_KEY in your environment and restart the dev server.' });
+      } else {
+        toast({ title: 'Narration failed', description: message });
+      }
+      stopAll();
+    } finally {
+      setIsLoading(false);
     }
-  }, [getNarrationNodes, onPlayStateChange]);
+  }, [VOICES, clearAllHighlights, onPlayStateChange, selectedVoice, stopAll]);
+
+  // No chat/mic actions
 
   const togglePlay = useCallback(() => {
-    if (isPlaying && !isPaused) {
-      speechSynthesis.pause();
-      setIsPaused(true);
-      onPlayStateChange?.(false);
+    const audio = audioRef.current;
+    if (isPlaying && !isPaused && audio) {
+      audio.pause();
       return;
     }
-    if (isPlaying && isPaused) {
-      speechSynthesis.resume();
-      setIsPaused(false);
-      onPlayStateChange?.(true);
+    if (!isPlaying && isPaused && audio) {
+      // resume or restart with new voice if changed
+      const currentVoice = voiceUsedRef.current;
+      const desiredVoice = VOICES[selectedVoice].id;
+      if (currentVoice && desiredVoice !== currentVoice) {
+        // restart from current paragraph using the newly selected voice
+        try { audio.pause(); } catch {}
+        playParagraphAt(currentIndexRef.current);
+        return;
+      }
+      audio.play().then(() => {
+        setIsPaused(false);
+        setIsPlaying(true);
+        onPlayStateChange?.(true);
+      }).catch(() => stopAll());
       return;
     }
-    play();
-  }, [isPlaying, isPaused, onPlayStateChange, play]);
+    // start fresh sequence
+    clearAllHighlights();
+    const nodes = getNarrationNodes();
+    nodesRef.current = nodes;
+    if (!nodes.length) {
+      toast({ title: "Nothing to narrate", description: "No paragraphs found to read on this view." });
+      return;
+    }
+    playParagraphAt(0);
+  }, [getNarrationNodes, isPaused, isPlaying, onPlayStateChange, playParagraphAt, stopAll]);
+
+  // If the user changes the voice while playing, restart the current paragraph with the new voice
+  useEffect(() => {
+    if (!(isPlaying || isPaused)) return;
+    const currentVoice = voiceUsedRef.current;
+    const desiredVoice = VOICES[selectedVoice].id;
+    if (currentVoice && desiredVoice !== currentVoice) {
+      const idx = currentIndexRef.current;
+      try { audioRef.current?.pause(); } catch {}
+      // restart quickly with the new voice at the same paragraph
+      const nodes = getNarrationNodes();
+      nodesRef.current = nodes;
+      if (nodes.length) {
+        playParagraphAt(Math.min(idx, nodes.length - 1));
+      }
+    }
+  }, [VOICES, selectedVoice, isPlaying, isPaused, getNarrationNodes, playParagraphAt]);
 
   useEffect(() => () => stopAll(), [stopAll]);
 
@@ -129,6 +232,22 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <select
+            aria-label="Select voice"
+            value={selectedVoice}
+            onChange={(e) => setSelectedVoice(e.target.value as any)}
+            className="font-sans text-xs"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--card))",
+            }}
+          >
+            <option value="historian">Historian · calm</option>
+            <option value="storyteller">Storyteller · warm</option>
+            <option value="analyst">Analyst · neutral</option>
+          </select>
           <button
             onClick={togglePlay}
             className="btn-embossed"
@@ -139,7 +258,7 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
               fontWeight: 700,
             }}
           >
-            {isPlaying && !isPaused ? "Pause" : "Play"}
+            {isLoading ? "Loading" : isPlaying && !isPaused ? "Pause" : "Play"}
           </button>
           <button onClick={stopAll} style={{ fontSize: 12, opacity: 0.8 }}>Stop</button>
         </div>
@@ -172,17 +291,33 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
         {/* Focus overlay while playing (slight dim) */}
         {isPlaying && !isPaused && (
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.03)', pointerEvents: 'none', zIndex: 40 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.05)', pointerEvents: 'none', zIndex: 40 }}
           />
         )}
         <div className={"voice-circle mx-auto " + (isPlaying && !isPaused ? "is-playing" : "")}></div>
         <div className="mt-4 flex justify-center gap-2">
+          <select
+            aria-label="Select voice"
+            value={selectedVoice}
+            onChange={(e) => setSelectedVoice(e.target.value as any)}
+            className="font-sans text-xs"
+            style={{
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--card))",
+            }}
+          >
+            <option value="historian">Historian · calm</option>
+            <option value="storyteller">Storyteller · warm</option>
+            <option value="analyst">Analyst · neutral</option>
+          </select>
           <button
             onClick={togglePlay}
             className="btn-embossed"
             style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
           >
-            {isPlaying && !isPaused ? "Pause" : "Play"}
+            {isLoading ? "Loading" : isPlaying && !isPaused ? "Pause" : "Play"}
           </button>
           <button onClick={stopAll} style={{ fontSize: 12, opacity: 0.8 }}>Stop</button>
         </div>
@@ -197,7 +332,7 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
       {isPlaying && !isPaused && (
         <div
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.03)',
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.05)',
             pointerEvents: 'none', zIndex: 40,
           }}
         />
@@ -207,7 +342,8 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
         <>
           <button
             aria-label="PastPort Voice"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={togglePlay}
+            className={(isLoading ? 'btn-gold-shimmer ' : '') + (isPlaying && !isPaused ? 'btn-pulse' : '')}
             style={{
               width: 44,
               height: 44,
@@ -226,16 +362,18 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
               (e.currentTarget as HTMLButtonElement).style.boxShadow =
                 "0 6px 16px rgba(0,0,0,0.25)";
             }}
+            title={isLoading ? 'Loading narration…' : (isPlaying && !isPaused ? 'Pause narration' : 'Play narration')}
           >
             <span style={{ fontSize: 18 }} role="img" aria-hidden>
               🎧
             </span>
           </button>
-          {expanded && <div style={{ marginTop: 10 }}>{Player}</div>}
         </>
       ) : (
         Player
       )}
+      {/* Hidden audio element to manage events in some browsers */}
+      <audio ref={audioRef} style={{ display: 'none' }} />
     </div>
   );
 };

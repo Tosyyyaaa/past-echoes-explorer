@@ -256,6 +256,18 @@ All colors MUST be HSL.
   .voice-highlight {
     background-size: 100% 0.22em; /* underline grows in */
     background-color: rgba(217,181,111,0.25); /* soft glow */
+    border-bottom: 2px solid rgba(217,181,111,0.45); /* faint gold underline */
+  }
+
+  /* Shimmer effect for highlighted paragraphs */
+  @keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+  }
+  .shimmer {
+    background: linear-gradient(90deg, #D9B56F33 25%, #D9B56F66 50%, #D9B56F33 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.5s infinite;
   }
 
   /* Voice agent speaking circle */
@@ -275,5 +287,34 @@ All colors MUST be HSL.
   @keyframes voice-pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.06); }
+  }
+
+  /* Floating button shimmer while loading */
+  .btn-gold-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-gold-shimmer::after {
+    content: "";
+    position: absolute;
+    top: 0; left: -150%;
+    width: 150%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(217,181,111,0.25) 50%, transparent 100%);
+    animation: btn-shimmer-move 1.4s ease-in-out infinite;
+  }
+  @keyframes btn-shimmer-move {
+    0% { left: -150%; }
+    100% { left: 150%; }
+  }
+
+  /* Pulse ring around the 🎧 icon while playing */
+  .btn-pulse {
+    box-shadow: 0 0 0 0 rgba(203,190,145,0.45);
+    animation: btn-pulse-ring 1.6s ease-out infinite;
+  }
+  @keyframes btn-pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(203,190,145,0.45); }
+    70% { box-shadow: 0 0 0 12px rgba(203,190,145,0); }
+    100% { box-shadow: 0 0 0 0 rgba(203,190,145,0); }
   }
 }
