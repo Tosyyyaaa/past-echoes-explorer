@@ -8,6 +8,7 @@ export interface AgnosConfig {
 export class AgnosHistorian {
   private history: AgnosTurn[] = [];
   private eventContext: string = "";
+  private title: string = "";
   private endpoint: string;
   private voiceId: string;
 
@@ -18,6 +19,7 @@ export class AgnosHistorian {
 
   setContext(context: { title: string; year?: string; summary?: string }) {
     const { title, year, summary } = context;
+    this.title = title;
     this.eventContext = `${title}${year ? ` (${year})` : ""}` + (summary ? `\n${summary}` : "");
   }
 
@@ -29,6 +31,7 @@ export class AgnosHistorian {
       userQuestion: question,
       voiceId: this.voiceId,
       history: this.history,
+      eventTitle: this.title,
     };
     const resp = await fetch(this.endpoint, {
       method: 'POST',

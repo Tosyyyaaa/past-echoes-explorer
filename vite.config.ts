@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { Readable } from "node:stream";
+import fs from "node:fs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -127,6 +128,7 @@ export default defineConfig(({ mode }) => {
       const history: Array<{ role: "user" | "assistant"; content: string }>
         = Array.isArray(parsed?.history) ? parsed.history : [];
       const voiceId: string = parsed?.voiceId || "21m00Tcm4TlvDq8ikWAM"; // default Historian
+      const eventTitle: string = parsed?.eventTitle || "";
       if (!userQuestion) {
         res.statusCode = 400;
         res.end("'userQuestion' is required");
@@ -135,9 +137,48 @@ export default defineConfig(({ mode }) => {
 
       const systemPrompt = "You are the PastPort Historian — an AI guide who explains historical events conversationally. Speak like a calm museum guide with a story-driven tone that matches a museum audio guide. Keep responses concise and factual, referencing causes, outcomes, and echoes in history where helpful.";
 
+      // Load additional context from ./output
+      let outputContext = "";
+      try {
+        const outputDir = path.resolve(process.cwd(), "output");
+        if (fs.existsSync(outputDir)) {
+          const files = fs.readdirSync(outputDir).filter((f) => {
+            try { return fs.statSync(path.join(outputDir, f)).isFile(); } catch { return false; }
+          });
+          const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+          let candidates = files.filter((f) => eventTitle && (norm(f).includes(norm(eventTitle)) || f.toLowerCase().includes(eventTitle.toLowerCase())));
+          if (!candidates.length) {
+            candidates = files.sort((a, b) => fs.statSync(path.join(outputDir, b)).mtimeMs - fs.statSync(path.join(outputDir, a)).mtimeMs).slice(0, 3);
+          }
+          const texts: string[] = [];
+          for (const f of candidates) {
+            const full = path.join(outputDir, f);
+            try {
+              const raw = fs.readFileSync(full, "utf8");
+              if (f.endsWith(".json")) {
+                try {
+                  const j = JSON.parse(raw);
+                  const parts = [j.title, j.summary, j.content, j.text, j.body].filter(Boolean).join("\n");
+                  if (parts) texts.push(parts);
+                } catch { texts.push(raw); }
+              } else {
+                texts.push(raw);
+              }
+            } catch {}
+          }
+          outputContext = texts.join("\n\n---\n\n").slice(0, 12000);
+        }
+      } catch {}
+
+      const combinedContext = [
+        eventTitle ? `Title: ${eventTitle}` : "",
+        eventContext,
+        outputContext ? `Additional context from uploaded files:\n${outputContext}` : "",
+      ].filter(Boolean).join("\n\n");
+
       const messages: any[] = [
         { role: "system", content: systemPrompt },
-        { role: "system", content: `Context for this chat:\n${eventContext}` },
+        { role: "system", content: `Context for this chat:\n${combinedContext}` },
         ...history.slice(-6),
         { role: "user", content: userQuestion },
       ];
