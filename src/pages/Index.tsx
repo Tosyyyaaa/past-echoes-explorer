@@ -1,5 +1,5 @@
 import { Header } from "@/components/Header";
-import VerticalTimeline from "@/components/VerticalTimeline";
+import Interactive3DTimeline from "@/components/interactive-3d-timeline/Interactive3DTimeline";
 
 const Index = () => {
   return (
@@ -21,7 +21,7 @@ const Index = () => {
               Walk the corridor of time — scroll down the spine to explore eras and events.
             </p>
           </div>
-          <VerticalTimeline />
+          <Interactive3DTimeline />
         </div>
       </main>
 
