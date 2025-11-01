@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Link as LinkIcon, Search as SearchIcon } from "lucide-react";
 
 interface TimelineEvent {
   id: number;
@@ -51,6 +55,9 @@ export default function Timeline3D() {
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("ancient");
   const [query, setQuery] = useState("");
+  const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [widgetMode, setWidgetMode] = useState<"search" | "link">("search");
+  const [widgetValue, setWidgetValue] = useState("");
 
   const filteredEvents = TIMELINE_EVENTS.filter((event) => event.period === selectedPeriod);
 
@@ -58,7 +65,17 @@ export default function Timeline3D() {
     setCurrentEventIndex(0);
   }, [selectedPeriod]);
 
-  // Auto-scrolling removed per request
+  // Auto-scrolling: fast cycle through filtered events
+  useEffect(() => {
+    if (!scrollContainerRef.current || filteredEvents.length === 0) return;
+    if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
+    autoScrollTimeoutRef.current = setTimeout(() => {
+      setCurrentEventIndex((prev) => (prev + 1) % filteredEvents.length);
+    }, 600);
+    return () => {
+      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
+    };
+  }, [currentEventIndex, filteredEvents.length]);
 
   useEffect(() => {
     const eventElements = scrollContainerRef.current?.querySelectorAll("[data-event-id]");
@@ -176,18 +193,60 @@ export default function Timeline3D() {
           </div>
         </div>
 
-        {/* Right: Search Widget */}
+        {/* Right: Search / Link Analyse Widget */}
         <aside className="w-full max-w-md h-full border-l border-[#d4af37]/20 bg-black/30 backdrop-blur px-5 py-6 overflow-hidden">
-          <div className="h-full flex flex-col gap-4">
-            <div>
-              <label className="block text-xs uppercase tracking-wider text-[#a89968] mb-2">Search events</label>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type to filter..."
-                className="w-full bg-black/40 border border-[#d4af37]/30 rounded px-3 py-2 text-sm text-[#e6e2d3] placeholder-[#a89968] focus:outline-none focus:border-[#d4af37]/60"
-              />
+          <div className="h-full flex flex-col gap-5">
+            <div className="paper-surface border-2 border-[#d4af37]/30 rounded p-4">
+              <Tabs defaultValue="search" onValueChange={(v) => { setWidgetMode(v as any); setWidgetValue(""); }}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="search" className="flex-1"><SearchIcon className="w-4 h-4 mr-2" /> Search event</TabsTrigger>
+                  <TabsTrigger value="link" className="flex-1"><LinkIcon className="w-4 h-4 mr-2" /> Paste link</TabsTrigger>
+                </TabsList>
+                <TabsContent value="search">
+                  <div className="mt-3">
+                    <Input
+                      value={widgetValue}
+                      onChange={(e) => setWidgetValue(e.target.value)}
+                      placeholder="Search an event..."
+                      className="focus-glow"
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="link">
+                  <div className="mt-3">
+                    <Input
+                      type="url"
+                      value={widgetValue}
+                      onChange={(e) => setWidgetValue(e.target.value)}
+                      placeholder="Paste article URL"
+                      className="focus-glow"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={() => {
+                    if (widgetMode === "search") {
+                      const q = widgetValue.trim().toLowerCase();
+                      if (!q) return;
+                      const match = TIMELINE_EVENTS.find((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q));
+                      if (match) {
+                        setSelectedPeriod(match.period);
+                        const idxInPeriod = TIMELINE_EVENTS.filter((x) => x.period === match.period).findIndex((x) => x.id === match.id);
+                        if (idxInPeriod >= 0) setCurrentEventIndex(idxInPeriod);
+                      }
+                    } else {
+                      // Placeholder for link analysis hook-up
+                    }
+                  }}
+                  className="btn-embossed"
+                >
+                  Analyse
+                </Button>
+              </div>
             </div>
+
             <div className="flex items-center gap-2 text-xs text-[#a89968]">
               <span>Period:</span>
               <div className="flex gap-2">
@@ -201,31 +260,6 @@ export default function Timeline3D() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="text-xs text-[#a89968]">Results</div>
-            <div className="flex-1 overflow-auto pr-1 space-y-1">
-              {TIMELINE_EVENTS.filter((e) => {
-                if (!query.trim()) return true;
-                const q = query.toLowerCase();
-                return e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q);
-              }).map((e) => (
-                <button
-                  key={e.id}
-                  onClick={() => {
-                    // Jump to event: set period, find index within that period, stop auto scroll
-                    setSelectedPeriod(e.period);
-                    const idxInPeriod = TIMELINE_EVENTS.filter((x) => x.period === e.period).findIndex((x) => x.id === e.id);
-                    if (idxInPeriod >= 0) setCurrentEventIndex(idxInPeriod);
-                  }}
-                  className="w-full text-left rounded border border-[#d4af37]/20 hover:border-[#d4af37]/50 bg-black/30 px-3 py-2 transition"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-[#d4af37] font-serif text-sm">{e.title}</div>
-                    <div className="text-[#a89968] text-xs ml-2">{e.year}</div>
-                  </div>
-                  <div className="text-gray-300 text-xs mt-1 line-clamp-2">{e.description}</div>
-                </button>
-              ))}
             </div>
           </div>
         </aside>
