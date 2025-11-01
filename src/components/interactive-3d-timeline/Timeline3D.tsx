@@ -42,33 +42,19 @@ const TIMELINE_EVENTS: TimelineEvent[] = [
   { id: 44, title: "AI Transformation", description: "Artificial intelligence begins reshaping industries and society", year: 2020, side: "right", period: "modern" },
 ];
 
-const PERIODS = [
-  { id: "ancient", label: "Ancient" },
-  { id: "renaissance", label: "Renaissance" },
-  { id: "industrial", label: "Industrial" },
-  { id: "modern", label: "Modern" },
-];
-
 export default function Timeline3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("ancient");
-  const [query, setQuery] = useState("");
   const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [widgetMode, setWidgetMode] = useState<"search" | "link">("search");
   const [widgetValue, setWidgetValue] = useState("");
 
-  const filteredEvents = TIMELINE_EVENTS.filter((event) => event.period === selectedPeriod);
-
-  useEffect(() => {
-    setCurrentEventIndex(0);
-  }, [selectedPeriod]);
+  const filteredEvents = TIMELINE_EVENTS; // show all events
 
   // Auto-scrolling: fast, stop at last event (no wrap)
   useEffect(() => {
     if (!scrollContainerRef.current || filteredEvents.length === 0) return;
-    // If we're at the last event, stop scheduling further advances
     if (currentEventIndex >= filteredEvents.length - 1) {
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
@@ -94,27 +80,10 @@ export default function Timeline3D() {
   }, [currentEventIndex]);
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-full bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden">
       <div className="h-full w-full flex">
-        {/* Left: Timeline */}
-        <div className="relative flex-[2] min-w-0 h-full">
-
-          <div className="absolute top-32 left-8 right-8 z-20 pointer-events-auto flex gap-4">
-            {PERIODS.map((period) => (
-              <button
-                key={period.id}
-                onClick={() => setSelectedPeriod(period.id)}
-                className={`px-6 py-2 rounded-full font-serif text-sm font-medium transition ${
-                  selectedPeriod === period.id
-                    ? "bg-[#d4af37] text-[#1f1813]"
-                    : "bg-[#d4af37]/20 text-[#d4af37] hover:bg-[#d4af37]/40"
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-
+        {/* Timeline */}
+        <div className="relative flex-1 min-w-0 h-full">
           <div className="flex h-full items-center pt-48">
             <div
               ref={scrollContainerRef}
@@ -133,138 +102,101 @@ export default function Timeline3D() {
                         index === currentEventIndex ? "opacity-100 scale-100" : "opacity-60 scale-95"
                       }`}
                     >
-                  {event.side === "left" ? (
-                    <>
-                      <div className="flex-1 text-right pr-12">
-                        <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
-                          <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
-                          <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
-                          <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
-                        </div>
-                      </div>
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center items-center pointer-events-none">
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 border-[#d4af37] bg-[#1f1813] transition-all ${
-                            index === currentEventIndex ? "scale-150 shadow-lg shadow-[#d4af37]" : "scale-100"
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1" />
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex-1" />
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center items-center pointer-events-none">
-                        <div
-                          className={`w-6 h-6 rounded-full border-2 border-[#d4af37] bg-[#1f1813] transition-all ${
-                            index === currentEventIndex ? "scale-150 shadow-lg shadow-[#d4af37]" : "scale-100"
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1 text-left pl-12">
-                        <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
-                          <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
-                          <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
-                          <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                      {event.side === "left" ? (
+                        <>
+                          <div className="flex-1 text-right pr-12">
+                            <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
+                              <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
+                              <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
+                              <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
+                            </div>
+                          </div>
+                          <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center items-center pointer-events-none">
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 border-[#d4af37] bg-[#1f1813] transition-all ${
+                                index === currentEventIndex ? "scale-150 shadow-lg shadow-[#d4af37]" : "scale-100"
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1" />
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1" />
+                          <div className="absolute left-1/2 transform -translate-x-1/2 flex justify-center items-center pointer-events-none">
+                            <div
+                              className={`w-6 h-6 rounded-full border-2 border-[#d4af37] bg-[#1f1813] transition-all ${
+                                index === currentEventIndex ? "scale-150 shadow-lg shadow-[#d4af37]" : "scale-100"
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1 text-left pl-12">
+                            <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
+                              <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
+                              <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
+                              <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
           </div>
+          {/* No Prev/Next controls */}
+        </div>
+      </div>
 
-          <div className="absolute top-8 right-8 z-20 pointer-events-auto flex gap-4">
-            <button
-              onClick={() => setCurrentEventIndex(Math.max(0, currentEventIndex - 1))}
-              disabled={currentEventIndex === 0}
-              className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
+      {/* Floating Analyse widget (top-right) */}
+      <div className="pointer-events-none absolute top-6 right-6 z-30">
+        <div className="pointer-events-auto paper-surface border-2 border-[#d4af37]/40 rounded-xl p-4 shadow-xl w-[360px]">
+          <Tabs defaultValue="search" onValueChange={(v) => { setWidgetMode(v as any); setWidgetValue(""); }}>
+            <TabsList className="w-full">
+              <TabsTrigger value="search" className="flex-1"><SearchIcon className="w-4 h-4 mr-2" /> Search event</TabsTrigger>
+              <TabsTrigger value="link" className="flex-1"><LinkIcon className="w-4 h-4 mr-2" /> Paste link</TabsTrigger>
+            </TabsList>
+            <TabsContent value="search">
+              <div className="mt-3">
+                <Input
+                  value={widgetValue}
+                  onChange={(e) => setWidgetValue(e.target.value)}
+                  placeholder="Search an event..."
+                  className="focus-glow"
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="link">
+              <div className="mt-3">
+                <Input
+                  type="url"
+                  value={widgetValue}
+                  onChange={(e) => setWidgetValue(e.target.value)}
+                  placeholder="Paste article URL"
+                  className="focus-glow"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={() => {
+                if (widgetMode === "search") {
+                  const q = widgetValue.trim().toLowerCase();
+                  if (!q) return;
+                  const idx = TIMELINE_EVENTS.findIndex((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q));
+                  if (idx >= 0) setCurrentEventIndex(idx);
+                } else {
+                  // placeholder for link analysis
+                }
+              }}
+              className="btn-embossed"
             >
-              ← Prev
-            </button>
-            <button
-              onClick={() => setCurrentEventIndex(Math.min(filteredEvents.length - 1, currentEventIndex + 1))}
-              disabled={currentEventIndex === filteredEvents.length - 1}
-              className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
-            >
-              Next →
-            </button>
+              Analyse
+            </Button>
           </div>
         </div>
-
-        {/* Right: Search / Link Analyse Widget */}
-        <aside className="w-full max-w-md h-full border-l border-[#d4af37]/20 bg-black/30 backdrop-blur px-5 py-6 overflow-hidden sticky top-0">
-          <div className="h-full flex flex-col gap-5">
-            <div className="paper-surface border-2 border-[#d4af37]/30 rounded p-4">
-              <Tabs defaultValue="search" onValueChange={(v) => { setWidgetMode(v as any); setWidgetValue(""); }}>
-                <TabsList className="w-full">
-                  <TabsTrigger value="search" className="flex-1"><SearchIcon className="w-4 h-4 mr-2" /> Search event</TabsTrigger>
-                  <TabsTrigger value="link" className="flex-1"><LinkIcon className="w-4 h-4 mr-2" /> Paste link</TabsTrigger>
-                </TabsList>
-                <TabsContent value="search">
-                  <div className="mt-3">
-                    <Input
-                      value={widgetValue}
-                      onChange={(e) => setWidgetValue(e.target.value)}
-                      placeholder="Search an event..."
-                      className="focus-glow"
-                    />
-                  </div>
-                </TabsContent>
-                <TabsContent value="link">
-                  <div className="mt-3">
-                    <Input
-                      type="url"
-                      value={widgetValue}
-                      onChange={(e) => setWidgetValue(e.target.value)}
-                      placeholder="Paste article URL"
-                      className="focus-glow"
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-              <div className="mt-4 flex justify-end">
-                <Button
-                  onClick={() => {
-                    if (widgetMode === "search") {
-                      const q = widgetValue.trim().toLowerCase();
-                      if (!q) return;
-                      const match = TIMELINE_EVENTS.find((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q));
-                      if (match) {
-                        setSelectedPeriod(match.period);
-                        const idxInPeriod = TIMELINE_EVENTS.filter((x) => x.period === match.period).findIndex((x) => x.id === match.id);
-                        if (idxInPeriod >= 0) setCurrentEventIndex(idxInPeriod);
-                      }
-                    } else {
-                      // Placeholder for link analysis hook-up
-                    }
-                  }}
-                  className="btn-embossed"
-                >
-                  Analyse
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-[#a89968]">
-              <span>Period:</span>
-              <div className="flex gap-2">
-                {PERIODS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedPeriod(p.id)}
-                    className={`px-3 py-1 rounded-full transition ${selectedPeriod === p.id ? "bg-[#d4af37] text-[#1f1813]" : "bg-[#d4af37]/15 text-[#d4af37] hover:bg-[#d4af37]/30"}`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );
