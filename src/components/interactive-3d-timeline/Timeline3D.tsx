@@ -52,6 +52,7 @@ export default function Timeline3D() {
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("ancient");
   const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [query, setQuery] = useState("");
 
   const filteredEvents = TIMELINE_EVENTS.filter((event) => event.period === selectedPeriod);
 
@@ -89,55 +90,55 @@ export default function Timeline3D() {
   }, [currentEventIndex]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-screen bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden"
-    >
-      <div className="absolute top-8 left-8 right-8 z-20 pointer-events-none">
+    <div ref={containerRef} className="w-full h-screen bg-gradient-to-b from-[#1f1813] via-[#2a2420] to-[#1f1813] overflow-hidden">
+      <div className="h-full w-full flex">
+        {/* Left: Timeline */}
+        <div className="relative flex-[2] min-w-0 h-full">
+          <div className="absolute top-8 left-8 right-8 z-20 pointer-events-none">
         <h1 className="text-5xl font-serif font-light tracking-widest text-[#d4af37] text-balance">
           Timeline of Civilization
         </h1>
         <p className="text-sm text-[#a89968] mt-2 font-light">Explore different eras</p>
-      </div>
+          </div>
 
-      <div className="absolute top-32 left-8 right-8 z-20 pointer-events-auto flex gap-4">
-        {PERIODS.map((period) => (
-          <button
-            key={period.id}
-            onClick={() => setSelectedPeriod(period.id)}
-            className={`px-6 py-2 rounded-full font-serif text-sm font-medium transition ${
-              selectedPeriod === period.id
-                ? "bg-[#d4af37] text-[#1f1813]"
-                : "bg-[#d4af37]/20 text-[#d4af37] hover:bg-[#d4af37]/40"
-            }`}
-          >
-            {period.label}
-          </button>
-        ))}
-      </div>
+          <div className="absolute top-32 left-8 right-8 z-20 pointer-events-auto flex gap-4">
+            {PERIODS.map((period) => (
+              <button
+                key={period.id}
+                onClick={() => setSelectedPeriod(period.id)}
+                className={`px-6 py-2 rounded-full font-serif text-sm font-medium transition ${
+                  selectedPeriod === period.id
+                    ? "bg-[#d4af37] text-[#1f1813]"
+                    : "bg-[#d4af37]/20 text-[#d4af37] hover:bg-[#d4af37]/40"
+                }`}
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
 
-      <div className="flex h-full items-center pt-48">
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 h-full overflow-y-auto overflow-x-hidden scroll-smooth"
-          style={{ scrollBehavior: "smooth" }}
-        >
-          <div className="relative px-8 py-12">
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-[#d4af37] via-[#d4af37] to-[#a89968] transform -translate-x-1/2" />
+          <div className="flex h-full items-center pt-48">
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 h-full overflow-y-auto overflow-x-hidden scroll-smooth"
+              style={{ scrollBehavior: "smooth" }}
+            >
+              <div className="relative px-8 py-12">
+                <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-[#d4af37] via-[#d4af37] to-[#a89968] transform -translate-x-1/2" />
 
-            <div className="space-y-24">
-              {filteredEvents.map((event, index) => (
-                <div
-                  key={event.id}
-                  data-event-id={event.id}
-                  className={`relative flex items-center transition-all duration-700 ${
-                    index === currentEventIndex ? "opacity-100 scale-100" : "opacity-60 scale-95"
-                  }`}
-                >
+                <div className="space-y-24">
+                  {filteredEvents.map((event, index) => (
+                    <div
+                      key={event.id}
+                      data-event-id={event.id}
+                      className={`relative flex items-center transition-all duration-700 ${
+                        index === currentEventIndex ? "opacity-100 scale-100" : "opacity-60 scale-95"
+                      }`}
+                    >
                   {event.side === "left" ? (
                     <>
                       <div className="flex-1 text-right pr-12">
-                        <div className="bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
+                        <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
                           <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
                           <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
                           <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
@@ -163,7 +164,7 @@ export default function Timeline3D() {
                         />
                       </div>
                       <div className="flex-1 text-left pl-12">
-                        <div className="bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
+                        <div className="inline-block w-fit max-w-md bg-black/40 backdrop-blur border border-[#d4af37]/30 rounded-lg p-6 hover:border-[#d4af37]/60 transition">
                           <p className="text-[#a89968] text-xs uppercase tracking-widest mb-2">Year {event.year}</p>
                           <h3 className="text-2xl font-serif font-light text-[#d4af37] mb-2">{event.title}</h3>
                           <p className="text-gray-300 text-sm leading-relaxed">{event.description}</p>
@@ -171,34 +172,91 @@ export default function Timeline3D() {
                       </div>
                     </>
                   )}
+                    </div>
+                  ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute top-8 right-8 z-20 pointer-events-auto flex gap-4">
+            <button
+              onClick={() => setIsAutoScrolling(!isAutoScrolling)}
+              className="px-6 py-2 bg-[#d4af37] text-[#1f1813] rounded font-serif text-sm font-medium hover:bg-[#e8c547] transition"
+            >
+              {isAutoScrolling ? "Pause" : "Play"}
+            </button>
+            <button
+              onClick={() => setCurrentEventIndex(Math.max(0, currentEventIndex - 1))}
+              disabled={currentEventIndex === 0}
+              className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={() => setCurrentEventIndex(Math.min(filteredEvents.length - 1, currentEventIndex + 1))}
+              disabled={currentEventIndex === filteredEvents.length - 1}
+              className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+
+        {/* Right: Search Widget */}
+        <aside className="w-full max-w-md h-full border-l border-[#d4af37]/20 bg-black/30 backdrop-blur px-5 py-6 overflow-hidden">
+          <div className="h-full flex flex-col gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-[#a89968] mb-2">Search events</label>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Type to filter..."
+                className="w-full bg-black/40 border border-[#d4af37]/30 rounded px-3 py-2 text-sm text-[#e6e2d3] placeholder-[#a89968] focus:outline-none focus:border-[#d4af37]/60"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-xs text-[#a89968]">
+              <span>Period:</span>
+              <div className="flex gap-2">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPeriod(p.id)}
+                    className={`px-3 py-1 rounded-full transition ${selectedPeriod === p.id ? "bg-[#d4af37] text-[#1f1813]" : "bg-[#d4af37]/15 text-[#d4af37] hover:bg-[#d4af37]/30"}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="text-xs text-[#a89968]">Results</div>
+            <div className="flex-1 overflow-auto pr-1 space-y-1">
+              {TIMELINE_EVENTS.filter((e) => {
+                if (!query.trim()) return true;
+                const q = query.toLowerCase();
+                return e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q);
+              }).map((e) => (
+                <button
+                  key={e.id}
+                  onClick={() => {
+                    // Jump to event: set period, find index within that period, stop auto scroll
+                    setSelectedPeriod(e.period);
+                    setIsAutoScrolling(false);
+                    const idxInPeriod = TIMELINE_EVENTS.filter((x) => x.period === e.period).findIndex((x) => x.id === e.id);
+                    if (idxInPeriod >= 0) setCurrentEventIndex(idxInPeriod);
+                  }}
+                  className="w-full text-left rounded border border-[#d4af37]/20 hover:border-[#d4af37]/50 bg-black/30 px-3 py-2 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-[#d4af37] font-serif text-sm">{e.title}</div>
+                    <div className="text-[#a89968] text-xs ml-2">{e.year}</div>
+                  </div>
+                  <div className="text-gray-300 text-xs mt-1 line-clamp-2">{e.description}</div>
+                </button>
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="absolute top-8 right-8 z-20 pointer-events-auto flex gap-4">
-        <button
-          onClick={() => setIsAutoScrolling(!isAutoScrolling)}
-          className="px-6 py-2 bg-[#d4af37] text-[#1f1813] rounded font-serif text-sm font-medium hover:bg-[#e8c547] transition"
-        >
-          {isAutoScrolling ? "Pause" : "Play"}
-        </button>
-        <button
-          onClick={() => setCurrentEventIndex(Math.max(0, currentEventIndex - 1))}
-          disabled={currentEventIndex === 0}
-          className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
-        >
-          ← Prev
-        </button>
-        <button
-          onClick={() => setCurrentEventIndex(Math.min(filteredEvents.length - 1, currentEventIndex + 1))}
-          disabled={currentEventIndex === filteredEvents.length - 1}
-          className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
-        >
-          Next →
-        </button>
+        </aside>
       </div>
     </div>
   );
