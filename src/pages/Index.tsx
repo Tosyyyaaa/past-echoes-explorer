@@ -1,18 +1,11 @@
-import Interactive3DTimeline from "@/components/interactive-3d-timeline/Interactive3DTimeline";
-import { Header } from "@/components/Header";
-
-const Index = () => {
-  return (
-    <div className="min-h-screen bg-black flex flex-col">
-      <Header />
-      <main className="flex-1 overflow-hidden">
-        <Interactive3DTimeline />
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
-import { IntroSection, type StartPayload } from "@/components/IntroSection";
+import { IntroSection } from "@/components/IntroSection";
+import type { StartPayload } from "@/components/IntroSection";
 import { AnalysisView } from "@/components/AnalysisView";
-import { analyzeArticle, clearOutput, type AnalysisResult } from "@/lib/api";
+import { analyzeArticle, clearOutput } from "@/lib/api";
+import type { AnalysisResult } from "@/lib/api";
 
 const Index = () => {
   const [showAnalysis, setShowAnalysis] = useState(false);

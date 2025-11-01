@@ -64,14 +64,14 @@ const renderEchoCard = (
     <button
       type="button"
       onClick={() => onSelect(echo)}
-      className="bg-background/60 border-2 border-border rounded p-6 border-l-4 border-l-primary h-full flex flex-col min-w-[280px] text-left transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="bg-background/60 border-2 border-border rounded p-6 border-l-4 border-l-primary h-full flex flex-col w-full text-left transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <h4 className="font-bold text-xl mb-3 text-primary font-display">
         {echo.historical_event}
       </h4>
       <div className="mt-auto flex items-center justify-between text-sm text-muted-foreground">
         <span>{echo.year || "Year unknown"}</span>
-        <span className="font-semibold text-primary">{resonancePercent}% resonance</span>
+        <span className="font-semibold text-primary">| {resonancePercent}% resonance</span>
       </div>
     </button>
   );
@@ -246,8 +246,8 @@ export const AnalysisView = ({
           <div className="space-y-4" data-voice-echo>
             {echoes.length > 0 ? (
               <>
-                <div className="overflow-x-auto pb-4">
-                  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="pb-4">
+                  <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
                     {visibleEchoes.map((echo, idx) => (
                       <div
                         key={`${echo.historical_event}-${echo.year}`}
@@ -291,7 +291,7 @@ export const AnalysisView = ({
               <div className="flex items-center justify-between">
                 <span>{activeEcho?.year}</span>
                 <span className="font-semibold text-primary">
-                  {activeEcho ? `${Math.round((activeEcho.resonance_score ?? 0) * 100)}% resonance` : ""}
+                  {activeEcho ? ` | ${Math.round((activeEcho.resonance_score ?? 0) * 100)}% resonance` : ""}
                 </span>
               </div>
               {activeEcho?.parallel_reasoning && <p>{activeEcho.parallel_reasoning}</p>}
