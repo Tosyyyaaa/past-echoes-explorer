@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { AgnosHistorian } from "@/lib/agnos";
 
 interface HistorianAgentProps {
   context: { title: string; year?: string; summary?: string };
@@ -13,30 +14,18 @@ export default function HistorianAgent({ context }: HistorianAgentProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const eventContext = `${context.title}${context.year ? ` (${context.year})` : ""}\n${context.summary || ""}`;
+  const orchestrator = useMemo(() => new AgnosHistorian(), []);
+  // keep orchestrator context in sync
+  orchestrator.setContext(context);
 
   const ask = async () => {
     const q = question.trim();
     if (!q) return;
     try {
       setIsLoading(true);
-      const resp = await fetch('/api/historian-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventContext,
-          userQuestion: q,
-          voiceId: '21m00Tcm4TlvDq8ikWAM',
-          history,
-        }),
-      });
-      if (!resp.ok) throw new Error(await resp.text());
-      const data = await resp.json();
+      const data = await orchestrator.ask(q);
       setAnswer(data.text || "");
-      setHistory((h) => [...h, { role: 'user', content: q }, { role: 'assistant', content: data.text || "" }]);
       setQuestion("");
       if (data.audioUrl) {
         let audio = audioRef.current;
