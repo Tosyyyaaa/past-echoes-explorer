@@ -7,7 +7,6 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EraView from "./pages/EraView";
 import EventPage from "./pages/Event";
-import HistorianAgent from "@/components/HistorianAgent";
 import AnalysisPage from "./pages/Analysis";
 
 const queryClient = new QueryClient();
@@ -18,8 +17,6 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        {/* Global historian button so it's always visible; pages can still mount contextual ones */}
-        <HistorianAgent context={{ title: "PastPort" }} />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/era/:eraId" element={<EraView />} />

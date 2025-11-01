@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { StartPayload } from "@/components/IntroSection";
+import HistorianAgent from "@/components/HistorianAgent";
 import type { AnalysisResult, NarrativeFacet, HistoricalEcho } from "@/lib/api";
 import {
   Dialog,
@@ -104,6 +105,9 @@ export const AnalysisView = ({
 
   return (
     <>
+      {analysis && !isLoading && !error && (
+        <HistorianAgent context={{ title: analysis.article.title ?? (source?.value || ""), summary: articleSummary }} />
+      )}
       <div className="max-w-7xl mx-auto px-4 py-10 space-y-10 animate-page-turn">
         {isLoading && (
           <Card className="border-2 border-border bg-card shadow-xl p-4 text-sm text-muted-foreground">
