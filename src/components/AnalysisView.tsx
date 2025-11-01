@@ -145,6 +145,21 @@ export const AnalysisView = ({
                   {analysis.narrative_analysis.article_summary ||
                     "The narrative summary will appear here once analysis completes."}
                 </p>
+                {analysis.article.url && (
+                  <a
+                    href={analysis.article.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-primary underline underline-offset-4"
+                  >
+                    View original article
+                  </a>
+                )}
+                {analysis.meta.selection_reason && (
+                  <p className="text-sm text-muted-foreground">
+                    Selected article because: {analysis.meta.selection_reason}
+                  </p>
+                )}
                 {facets.slice(0, 1).map((facet) => (
                   <div className="pl-4 border-l-4 border-accent my-4 py-1" key={facet.label}>
                     <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">

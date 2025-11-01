@@ -35,7 +35,7 @@ const Index = () => {
     const input =
       payload.mode === "link"
         ? { articleUrl: payload.value }
-        : { articleText: payload.value };
+        : { searchQuery: payload.value };
     analyzeMutation.mutate(input);
   };
 

@@ -10,6 +10,7 @@ from .openai_client import request_narrative_analysis
 from .perplexity_client import request_historical_echoes
 from .prompts import build_narrative_prompt
 from .schemas import AnalysisMeta, AnalysisResult, HistoricalEcho
+from .search import discover_article_from_query, ArticleSelection
 
 
 def _resonance_value(echo: HistoricalEcho) -> float:
@@ -42,6 +43,7 @@ async def run_analysis(
     *,
     article_url: Optional[str] = None,
     article_text: Optional[str] = None,
+    search_query: Optional[str] = None,
     openai_model: str = "gpt-4.1-mini",
     perplexity_model: str = "sonar",
     progress_callback: Optional[Callable[[str], None]] = None,
@@ -51,10 +53,22 @@ async def run_analysis(
             progress_callback(message)
 
     async with httpx.AsyncClient() as client:
-        article = await resolve_article(
-            client=client, article_url=article_url, article_text=article_text
-        )
-        notify("Article loaded and prepared.")
+        selected: Optional[ArticleSelection] = None
+
+        if search_query:
+            notify(f"Locating article for query '{search_query}' ...")
+            article, selected = await discover_article_from_query(
+                search_query,
+                client=client,
+                openai_model=openai_model,
+                perplexity_model=perplexity_model,
+            )
+            notify("Article discovered via search and loaded.")
+        else:
+            article = await resolve_article(
+                client=client, article_url=article_url, article_text=article_text
+            )
+            notify("Article loaded and prepared.")
 
         narrative_prompt = build_narrative_prompt(article, article.content)
         notify("Requesting narrative analysis from OpenAI ...")
@@ -89,6 +103,13 @@ async def run_analysis(
             openai_model=openai_model,
             perplexity_model=perplexity_model,
         )
+
+        if search_query:
+            meta.search_query = search_query
+        if search_query and selected:
+            meta.selected_article_url = article.url or selected.url
+            meta.selected_article_title = article.title or selected.title
+            meta.selection_reason = selected.reason
 
         raw_prompts = {
             "narrative_prompt": narrative_prompt,

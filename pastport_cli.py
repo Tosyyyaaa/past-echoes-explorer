@@ -37,13 +37,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="PastPort CLI proof-of-concept.")
     parser.add_argument("--url", help="Article URL to analyze.")
     parser.add_argument("--text", help="Raw article text (fallback when URL extraction fails).")
+    parser.add_argument("--search", help="Search query to locate a relevant article.")
     return parser.parse_args(argv)
 
 
-async def generate_report(article_url: Optional[str], article_text: Optional[str]):
+async def generate_report(article_url: Optional[str], article_text: Optional[str], search_query: Optional[str]):
     result = await run_analysis(
         article_url=article_url,
         article_text=article_text,
+        search_query=search_query,
         progress_callback=status,
     )
     return result
@@ -51,15 +53,15 @@ async def generate_report(article_url: Optional[str], article_text: Optional[str
 
 def main(argv: list[str]) -> None:
     args = parse_args(argv)
-    if not args.url and not args.text:
-        print("Provide --url or --text.", file=sys.stderr)
+    if not args.url and not args.text and not args.search:
+        print("Provide --url, --text, or --search.", file=sys.stderr)
         sys.exit(1)
 
     load_env()
 
     output_file: str | None = None
     try:
-        analysis = asyncio.run(generate_report(args.url, args.text))
+        analysis = asyncio.run(generate_report(args.url, args.text, args.search))
         output_file = save_analysis_result(analysis)
         analysis.meta.output_file = output_file
     except Exception as exc:  # pragma: no cover - CLI guardrail

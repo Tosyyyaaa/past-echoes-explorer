@@ -11,6 +11,51 @@ from .schemas import Article, HistoricalEcho, NarrativeFacet
 from .utils import parse_json_payload
 
 
+async def call_perplexity_json(
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    client: httpx.AsyncClient,
+    model: str = "sonar",
+    temperature: float = 0,
+) -> str:
+    api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not api_key:
+        raise RuntimeError("PERPLEXITY_API_KEY environment variable is missing.")
+
+    payload = {
+        "model": model,
+        "temperature": temperature,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+    }
+
+    response = await client.post(
+        "https://api.perplexity.ai/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=60,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"Perplexity API error {response.status_code}: {response.text}")
+
+    data = response.json()
+    choices = data.get("choices") or []
+    if not choices:
+        raise RuntimeError("Perplexity response missing choices.")
+
+    content = choices[0]["message"].get("content")
+    if isinstance(content, list):
+        text = "".join(part.get("text", "") for part in content if isinstance(part, dict))
+    else:
+        text = content
+    if not isinstance(text, str):
+        raise RuntimeError("Perplexity response content is not a string.")
+    return text.strip()
+
+
 def _looks_like_nested_json(item: dict) -> bool:
     for key in ("historical_event", "source_excerpt", "parallel_reasoning", "consequences_short"):
         value = item.get(key)
@@ -53,43 +98,17 @@ async def request_historical_echoes(
     client: httpx.AsyncClient,
     model: str = "sonar",
 ) -> List[HistoricalEcho]:
-    api_key = os.getenv("PERPLEXITY_API_KEY")
-    if not api_key:
-        raise RuntimeError("PERPLEXITY_API_KEY environment variable is missing.")
-
     prompt = build_perplexity_prompt(facet, article)
-    payload = {
-        "model": model,
-        "temperature": 0,
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You surface historical echoes of modern narratives for PastPort. "
-                    "Respond as compact JSON only."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-    }
-
-    response = await client.post(
-        "https://api.perplexity.ai/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=60,
+    content = await call_perplexity_json(
+        system_prompt=(
+            "You surface historical echoes of modern narratives for PastPort. "
+            "Respond as compact JSON only."
+        ),
+        user_prompt=prompt,
+        client=client,
+        model=model,
+        temperature=0,
     )
-    if response.status_code >= 400:
-        raise RuntimeError(f"Perplexity API error {response.status_code}: {response.text}")
-
-    data = response.json()
-    choices = data.get("choices") or []
-    if not choices:
-        raise RuntimeError("Perplexity response missing choices.")
-
-    content = choices[0]["message"]["content"]
-    if not isinstance(content, str):
-        raise RuntimeError("Perplexity response content is not a string.")
 
     cleaned = _strip_code_fence(content)
     echoes_raw = _sort_and_limit(_safe_parse_echoes(cleaned))

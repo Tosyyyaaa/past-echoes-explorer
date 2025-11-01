@@ -39,6 +39,11 @@ export interface AnalysisMeta {
   generated_at: string;
   openai_model: string;
   perplexity_model: string;
+  output_file?: string | null;
+  search_query?: string | null;
+  selected_article_url?: string | null;
+  selected_article_title?: string | null;
+  selection_reason?: string | null;
 }
 
 export interface AnalysisResult {
@@ -51,6 +56,7 @@ export interface AnalysisResult {
 interface AnalyzeInput {
   articleUrl?: string;
   articleText?: string;
+  searchQuery?: string;
 }
 
 export async function analyzeArticle(

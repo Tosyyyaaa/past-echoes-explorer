@@ -48,6 +48,10 @@ class AnalysisMeta(BaseModel):
     openai_model: str
     perplexity_model: str
     output_file: Optional[str] = None
+    search_query: Optional[str] = None
+    selected_article_url: Optional[str] = None
+    selected_article_title: Optional[str] = None
+    selection_reason: Optional[str] = None
 
 
 class AnalysisResult(BaseModel):

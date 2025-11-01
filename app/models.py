@@ -8,10 +8,11 @@ from pydantic import BaseModel, Field, HttpUrl
 class AnalysisRequest(BaseModel):
     articleUrl: Optional[HttpUrl] = Field(default=None, description="URL of the article to analyze")
     articleText: Optional[str] = Field(default=None, description="Raw article text when URL can't be fetched")
+    searchQuery: Optional[str] = Field(default=None, description="Event or topic to search for relevant article")
 
     def input_kwargs(self) -> dict[str, str | None]:
         return {
             "article_url": str(self.articleUrl) if self.articleUrl else None,
             "article_text": self.articleText,
+            "search_query": self.searchQuery,
         }
-

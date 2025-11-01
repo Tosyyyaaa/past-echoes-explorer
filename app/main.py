@@ -45,8 +45,8 @@ async def status() -> dict[str, str]:
 @app.post("/api/analyze", response_model=AnalysisResult)
 async def analyze(request: AnalysisRequest) -> AnalysisResult:
     payload = request.input_kwargs()
-    if not payload["article_url"] and not payload["article_text"]:
-        raise HTTPException(status_code=400, detail="Provide articleUrl or articleText.")
+    if not payload["article_url"] and not payload["article_text"] and not payload["search_query"]:
+        raise HTTPException(status_code=400, detail="Provide articleUrl, articleText, or searchQuery.")
 
     try:
         result = await run_analysis(**payload)

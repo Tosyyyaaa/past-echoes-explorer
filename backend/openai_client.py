@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import List
+from typing import List, Optional
 
 import httpx
 
@@ -10,7 +10,15 @@ from .schemas import NarrativeAnalysis, NarrativeFacet, Article
 from .utils import parse_json_payload
 
 
-async def _call_openai(prompt: str, *, client: httpx.AsyncClient, model: str) -> str:
+async def call_openai_json(
+    *,
+    prompt: str,
+    client: httpx.AsyncClient,
+    model: str,
+    system_message: Optional[str] = None,
+    temperature: float = 0.2,
+    max_tokens: int = 1800,
+) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY environment variable is missing.")
@@ -20,15 +28,14 @@ async def _call_openai(prompt: str, *, client: httpx.AsyncClient, model: str) ->
         "messages": [
             {
                 "role": "system",
-                "content": (
-                    "You are a meticulous narrative analyst. Respond ONLY with valid JSON matching the requested schema."
-                ),
+                "content": system_message
+                or "You are a helpful assistant. Respond ONLY with valid JSON matching the requested schema.",
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.2,
+        "temperature": temperature,
         "response_format": {"type": "json_object"},
-        "max_tokens": 1800,
+        "max_tokens": max_tokens,
     }
 
     response = await client.post(
@@ -73,7 +80,16 @@ async def request_narrative_analysis(
     prompt: str | None = None,
 ) -> NarrativeAnalysis:
     prompt_text = prompt or build_narrative_prompt(article, article.content)
-    raw = await _call_openai(prompt_text, client=client, model=model)
+    raw = await call_openai_json(
+        prompt=prompt_text,
+        client=client,
+        model=model,
+        system_message=(
+            "You are a meticulous narrative analyst. Respond ONLY with valid JSON matching the requested schema."
+        ),
+        temperature=0.2,
+        max_tokens=1800,
+    )
     parsed = parse_json_payload(raw, "OpenAI narrative response")
 
     facets = _parse_narrative_facets(parsed.get("narrativeFacets", []))
