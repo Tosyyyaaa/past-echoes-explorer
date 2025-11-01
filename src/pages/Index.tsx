@@ -1,25 +1,10 @@
-import { useState } from "react";
 import { Header } from "@/components/Header";
-import { IntroSection, type StartPayload } from "@/components/IntroSection";
-import { AnalysisView } from "@/components/AnalysisView";
+import VerticalTimeline from "@/components/VerticalTimeline";
 
 const Index = () => {
-  const [showAnalysis, setShowAnalysis] = useState(false);
-  const [source, setSource] = useState<StartPayload | null>(null);
-
-  const handleStart = (payload: StartPayload) => {
-    setSource(payload);
-    setShowAnalysis(true);
-  };
-
-  const handleBack = () => {
-    setShowAnalysis(false);
-    setSource(null);
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      <Header onBack={showAnalysis ? handleBack : undefined} />
+      <Header />
       
       <main className="container mx-auto pb-12 relative">
         {/* Watermark behind content */}
@@ -30,11 +15,14 @@ const Index = () => {
             className="opacity-5 select-none max-w-[70%] md:max-w-[45%]"
           />
         </div>
-        {!showAnalysis ? (
-          <IntroSection onStart={handleStart} />
-        ) : (
-          <AnalysisView source={source || undefined} />
-        )}
+        <div className="max-w-6xl mx-auto pt-6 space-y-8">
+          <div className="text-center">
+            <p className="text-xl leading-relaxed text-primary font-montserrat fade-in-soft" style={{animationDelay: "120ms"}}>
+              Walk the corridor of time — scroll down the spine to explore eras and events.
+            </p>
+          </div>
+          <VerticalTimeline />
+        </div>
       </main>
 
       <footer className="text-center py-10 text-sm text-muted-foreground border-t-2 border-border">
