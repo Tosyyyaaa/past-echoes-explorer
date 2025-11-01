@@ -89,14 +89,28 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background-image: 
+    background-image:
+      /* ledger-like subtle lines */
       repeating-linear-gradient(
         0deg,
         transparent,
         transparent 31px,
         hsl(var(--border) / 0.15) 31px,
         hsl(var(--border) / 0.15) 32px
-      );
+      ),
+      /* fine grain */
+      radial-gradient(hsl(var(--ink) / 0.06) 1px, transparent 1px);
+    background-size: auto, 3px 3px;
+    background-blend-mode: normal, multiply;
+  }
+  
+  /* vignette overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, hsl(var(--ink) / 0.35) 100%);
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -111,6 +125,26 @@ All colors MUST be HSL.
   
   .font-sans {
     font-family: 'Inter', sans-serif;
+  }
+  
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* Subtle paper texture surface for cards/widgets */
+  .paper-surface {
+    background-color: hsl(var(--card));
+    background-image:
+      radial-gradient(hsl(var(--ink) / 0.04) 1px, transparent 1px),
+      linear-gradient(0deg, hsl(var(--ink) / 0.015), transparent 50%),
+      linear-gradient(90deg, hsl(var(--ink) / 0.01), transparent 50%);
+    background-size: 3px 3px, 100% 8px, 8px 100%;
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.06),
+      inset 0 8px 24px hsl(var(--ink) / 0.05),
+      0 0 0 1px hsl(var(--border)),
+      var(--shadow-md);
+    border-radius: var(--radius);
   }
   
   .editorial-border {
@@ -146,5 +180,100 @@ All colors MUST be HSL.
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Soft fade/float animations */
+  .fade-in-soft {
+    animation: fade-in-soft 800ms ease-out both;
+  }
+  @keyframes fade-in-soft {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-up-slow {
+    animation: fade-up-slow 1200ms ease-out 200ms both;
+  }
+  @keyframes fade-up-slow {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Input focus glow and underline animation */
+  .focus-glow {
+    transition: box-shadow 200ms ease, background-size 250ms ease;
+    background-image: linear-gradient(hsl(var(--accent)) 0 0);
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 2px;
+  }
+  .focus-glow:focus,
+  .focus-glow:focus-visible {
+    box-shadow: 0 0 0 3px hsl(37 90% 60% / 0.18), 0 0 0 1px hsl(var(--accent));
+    background-size: 100% 2px;
+    outline: none;
+  }
+
+  /* Embossed button style */
+  .btn-embossed {
+    background-image: linear-gradient(
+      to bottom,
+      hsl(var(--accent) / 0.25),
+      hsl(var(--ink) / 0.0)
+    );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--foreground) / 0.2),
+      inset 0 -2px 6px hsl(var(--ink) / 0.15),
+      0 4px 10px hsl(var(--ink) / 0.25);
+    border: 1px solid hsl(var(--border));
+  }
+  .btn-embossed:hover {
+    filter: brightness(1.05);
+  }
+  .btn-embossed:active {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 2px 6px hsl(var(--ink) / 0.25),
+      0 2px 6px hsl(var(--ink) / 0.2);
+  }
+
+  /* Faint golden underline for narration highlights */
+  .gold-underline {
+    background-image: linear-gradient( to right, hsl(43 60% 75% / 0.7), hsl(37 40% 55% / 0.6) );
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    background-size: 100% 2px;
+  }
+
+  /* New dynamic highlight system for narration */
+  .voice-underline-target {
+    transition: background-size 250ms ease, background-color 250ms ease;
+    background-image: linear-gradient(to right, rgba(217,181,111,0.85), rgba(217,181,111,0.6));
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 0.22em;
+  }
+  .voice-highlight {
+    background-size: 100% 0.22em; /* underline grows in */
+    background-color: rgba(217,181,111,0.25); /* soft glow */
+  }
+
+  /* Voice agent speaking circle */
+  .voice-circle {
+    width: 96px;
+    height: 96px;
+    border-radius: 9999px;
+    background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), rgba(203,190,145,0.6)),
+                linear-gradient(180deg, #D9CBA1, #CBBE91);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.25);
+    transition: transform 200ms ease, box-shadow 300ms ease;
+  }
+  .voice-circle.is-playing {
+    animation: voice-pulse 1200ms ease-in-out infinite;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,0.18), 0 0 0 10px rgba(203,190,145,0.20), 0 0 0 18px rgba(203,190,145,0.10);
+  }
+  @keyframes voice-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
   }
 }
