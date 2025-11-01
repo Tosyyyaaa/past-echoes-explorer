@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link as LinkIcon, Search as SearchIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TimelineEvent {
   id: number;
@@ -49,6 +50,7 @@ export default function Timeline3D() {
   const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [widgetMode, setWidgetMode] = useState<"search" | "link">("search");
   const [widgetValue, setWidgetValue] = useState("");
+  const navigate = useNavigate();
 
   const filteredEvents = TIMELINE_EVENTS; // show all events
 
@@ -187,8 +189,11 @@ export default function Timeline3D() {
                   if (!q) return;
                   const idx = TIMELINE_EVENTS.findIndex((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) || String(e.year).includes(q));
                   if (idx >= 0) setCurrentEventIndex(idx);
+                  navigate(`/analysis?mode=search&value=${encodeURIComponent(widgetValue.trim())}`);
                 } else {
-                  // placeholder for link analysis
+                  const url = widgetValue.trim();
+                  if (!url) return;
+                  navigate(`/analysis?mode=link&value=${encodeURIComponent(url)}`);
                 }
               }}
               className="btn-embossed"

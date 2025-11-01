@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EraView from "./pages/EraView";
 import EventPage from "./pages/Event";
+import AnalysisPage from "./pages/Analysis";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/era/:eraId" element={<EraView />} />
           <Route path="/event/:eventId" element={<EventPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
