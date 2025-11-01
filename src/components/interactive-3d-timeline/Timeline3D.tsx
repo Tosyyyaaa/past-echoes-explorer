@@ -98,12 +98,6 @@ export default function Timeline3D() {
       <div className="h-full w-full flex">
         {/* Left: Timeline */}
         <div className="relative flex-[2] min-w-0 h-full">
-          <div className="absolute top-8 left-8 right-8 z-20 pointer-events-none">
-        <h1 className="text-5xl font-serif font-light tracking-widest text-[#d4af37] text-balance">
-          Timeline of Civilization
-        </h1>
-        <p className="text-sm text-[#a89968] mt-2 font-light">Explore different eras</p>
-          </div>
 
           <div className="absolute top-32 left-8 right-8 z-20 pointer-events-auto flex gap-4">
             {PERIODS.map((period) => (
