@@ -124,6 +124,8 @@ export default defineConfig(({ mode }) => {
       }
       const eventContext: string = parsed?.eventContext || "";
       const userQuestion: string = parsed?.userQuestion || "";
+      const history: Array<{ role: "user" | "assistant"; content: string }>
+        = Array.isArray(parsed?.history) ? parsed.history : [];
       const voiceId: string = parsed?.voiceId || "21m00Tcm4TlvDq8ikWAM"; // default Historian
       if (!userQuestion) {
         res.statusCode = 400;
@@ -131,8 +133,14 @@ export default defineConfig(({ mode }) => {
         return;
       }
 
-      const systemPrompt = "You are the PastPort Historian — an AI guide who explains historical events conversationally. Speak like a calm museum guide. Use clear, educational tone. When possible, reference causes, outcomes, and echoes in history.";
-      const userContent = `Event Context:\n${eventContext}\n\nQuestion:\n${userQuestion}`;
+      const systemPrompt = "You are the PastPort Historian — an AI guide who explains historical events conversationally. Speak like a calm museum guide with a story-driven tone that matches a museum audio guide. Keep responses concise and factual, referencing causes, outcomes, and echoes in history where helpful.";
+
+      const messages: any[] = [
+        { role: "system", content: systemPrompt },
+        { role: "system", content: `Context for this chat:\n${eventContext}` },
+        ...history.slice(-6),
+        { role: "user", content: userQuestion },
+      ];
 
       const aiResp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -142,10 +150,7 @@ export default defineConfig(({ mode }) => {
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
+          messages,
           temperature: 0.7,
         }),
       });
