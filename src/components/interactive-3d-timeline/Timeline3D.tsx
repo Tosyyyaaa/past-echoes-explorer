@@ -49,9 +49,7 @@ export default function Timeline3D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
-  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("ancient");
-  const autoScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [query, setQuery] = useState("");
 
   const filteredEvents = TIMELINE_EVENTS.filter((event) => event.period === selectedPeriod);
@@ -60,26 +58,7 @@ export default function Timeline3D() {
     setCurrentEventIndex(0);
   }, [selectedPeriod]);
 
-  useEffect(() => {
-    if (!isAutoScrolling || !scrollContainerRef.current) return;
-
-    const scheduleNextEvent = () => {
-      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
-
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        setCurrentEventIndex((prev) => {
-          const nextIndex = (prev + 1) % filteredEvents.length;
-        return nextIndex;
-        });
-      }, 1500);
-    };
-
-    scheduleNextEvent();
-
-    return () => {
-      if (autoScrollTimeoutRef.current) clearTimeout(autoScrollTimeoutRef.current);
-    };
-  }, [isAutoScrolling, currentEventIndex, filteredEvents.length]);
+  // Auto-scrolling removed per request
 
   useEffect(() => {
     const eventElements = scrollContainerRef.current?.querySelectorAll("[data-event-id]");
@@ -181,12 +160,6 @@ export default function Timeline3D() {
 
           <div className="absolute top-8 right-8 z-20 pointer-events-auto flex gap-4">
             <button
-              onClick={() => setIsAutoScrolling(!isAutoScrolling)}
-              className="px-6 py-2 bg-[#d4af37] text-[#1f1813] rounded font-serif text-sm font-medium hover:bg-[#e8c547] transition"
-            >
-              {isAutoScrolling ? "Pause" : "Play"}
-            </button>
-            <button
               onClick={() => setCurrentEventIndex(Math.max(0, currentEventIndex - 1))}
               disabled={currentEventIndex === 0}
               className="px-4 py-2 bg-[#d4af37]/20 text-[#d4af37] rounded font-serif text-sm hover:bg-[#d4af37]/30 disabled:opacity-50 transition"
@@ -241,7 +214,6 @@ export default function Timeline3D() {
                   onClick={() => {
                     // Jump to event: set period, find index within that period, stop auto scroll
                     setSelectedPeriod(e.period);
-                    setIsAutoScrolling(false);
                     const idxInPeriod = TIMELINE_EVENTS.filter((x) => x.period === e.period).findIndex((x) => x.id === e.id);
                     if (idxInPeriod >= 0) setCurrentEventIndex(idxInPeriod);
                   }}
