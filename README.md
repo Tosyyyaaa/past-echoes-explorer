@@ -1,5 +1,9 @@
 # Welcome to your Lovable project
 
+# TO RUN
+bash run_backend.sh
+npm dev run
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/e6818bb5-2a5a-4e90-80ba-cd69b2e66c5e

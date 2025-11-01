@@ -1,148 +1,332 @@
-import { ArrowRight, TrendingUp, AlertCircle, Sparkles, Calendar, Link as LinkIcon, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  Calendar,
+  ChevronDown,
+  Link as LinkIcon,
+  Search,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 // removed quick search widget; reflowed layout
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { StartPayload } from "@/components/IntroSection";
 import VoiceAgent from "@/components/VoiceAgent";
+import type { AnalysisResult, NarrativeFacet, HistoricalEcho } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AnalysisViewProps {
   source?: StartPayload;
-  isVoicePlaying?: boolean;
+  analysis: AnalysisResult | null;
+  isLoading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-export const AnalysisView = ({ source }: AnalysisViewProps) => {
+const trimText = (value?: string | null, limit = 220) => {
+  if (!value) return "";
+  if (value.length <= limit) return value;
+  const trimmed = value.slice(0, limit).trimEnd();
+  return trimmed.replace(/[.,;:]+$/, "") + "…";
+};
+
+const renderFacet = (facet: NarrativeFacet) => (
+  <li key={facet.label} className="flex items-start gap-3">
+    <div className="w-1.5 h-1.5 bg-primary mt-2 flex-shrink-0" />
+    <div>
+      <p className="text-card-foreground font-sans font-semibold">{facet.label}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed">{trimText(facet.description, 160)}</p>
+      {facet.supporting_quotes?.length > 0 && (
+        <ul className="mt-2 space-y-1 text-sm italic text-muted-foreground">
+          {facet.supporting_quotes.map((quote, idx) => (
+            <li key={idx}>"{quote}"</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </li>
+);
+
+const renderEchoCard = (
+  echo: HistoricalEcho,
+  onSelect: (echo: HistoricalEcho) => void,
+) => {
+  const resonancePercent = Math.round((echo.resonance_score ?? 0) * 100);
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 space-y-10 animate-page-turn">
-      {/* Top row: long narrow article widget on the left, analysis cards on the right */}
-      <div className="grid gap-8 md:grid-cols-[560px_1fr] items-stretch">
-        {/* Article widget (narrow, scrollable if long) */}
-        <Card className="border-2 border-border bg-card paper-surface shadow-xl p-6 h-full overflow-auto pr-2">
-          <div className="flex items-start gap-2 mb-4">
-            {source ? (
-              <Badge variant="secondary" className="font-sans text-xs uppercase tracking-wider font-medium flex items-center gap-2">
-                {source.mode === "link" ? <LinkIcon className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
-                {source.mode === "link" ? "Article" : "Search"}
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="font-sans text-xs uppercase tracking-wider font-medium">
-                Search
-              </Badge>
-            )}
-          </div>
+    <button
+      type="button"
+      onClick={() => onSelect(echo)}
+      className="bg-background/60 border-2 border-border rounded p-6 border-l-4 border-l-primary h-full flex flex-col min-w-[280px] text-left transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <h4 className="font-bold text-xl mb-3 text-primary font-display">
+        {echo.historical_event}
+      </h4>
+      <div className="mt-auto flex items-center justify-between text-sm text-muted-foreground">
+        <span>{echo.year || "Year unknown"}</span>
+        <span className="font-semibold text-primary">{resonancePercent}% resonance</span>
+      </div>
+    </button>
+  );
+};
 
-          <h2 data-voice-title className="text-3xl font-bold font-display mb-4 text-primary leading-tight">
-            {source?.mode === "search" && source?.value
-              ? source.value
-              : source?.mode === "link" && source?.value
-              ? "Analysing submitted article"
-              : "Rising Tensions in Global Trade Negotiations"}
-          </h2>
 
-          <div data-voice-overview className="space-y-6 text-card-foreground font-sans text-base leading-relaxed">
-            <p className="voice-underline-target">
-              Global markets faced significant turbulence today as trade negotiations 
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-medium border-b-2 border-primary/40">
-                reached a critical impasse
-              </span>
-              between major economic powers. Analysts warn of
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-medium border-b-2 border-primary/40">
-                potential cascading effects
-              </span>
-              on consumer prices and employment.
-            </p>
-            <div className="pl-4 border-l-4 border-accent my-4 py-1">
-              <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Fear appeal detected
-              </p>
-            </div>
-            <p className="voice-underline-target">
-              Industry leaders expressed concern over the breakdown in diplomatic channels, 
-              with some calling it
-              <span className="bg-highlight/60 px-2 py-0.5 mx-1 font-semibold border-b-2 border-primary/50">
-                "a crisis of unprecedented proportions"
-              </span>
-              that could reshape international commerce for decades.
-            </p>
-          </div>
-        </Card>
+export const AnalysisView = ({
+  source,
+  analysis,
+  isLoading,
+  error,
+  onRetry,
+}: AnalysisViewProps) => {
+  const [showAllEchoes, setShowAllEchoes] = useState(false);
+  const [activeEcho, setActiveEcho] = useState<HistoricalEcho | null>(null);
+  const emotionalCues = analysis?.narrative_analysis.emotional_cues ?? [];
+  const facets = analysis?.narrative_analysis.narrative_facets ?? [];
+  const echoes = analysis?.echoes ?? [];
+  const primaryEcho = echoes[0];
+  const visibleEchoes = showAllEchoes ? echoes : echoes.slice(0, 3);
+  const cuesToShow = emotionalCues.slice(0, 3);
+  const primaryFacet = facets[0];
+  const facetDescription = primaryFacet ? trimText(primaryFacet.description, 120) : "";
+  const articleSummary = trimText(analysis?.narrative_analysis.article_summary, 160);
+  const selectionNote = trimText(analysis?.meta?.selection_reason ?? "", 140);
+  const biasSnippet = trimText(analysis?.narrative_analysis.bias_frame, 140);
 
-        <div className="h-full flex flex-col gap-8">
-          <Card className="border-2 border-border bg-card paper-surface shadow-xl p-6 shrink-0 h-[280px] flex items-center justify-center">
-            <VoiceAgent variant="panel" />
+  useEffect(() => {
+    setShowAllEchoes(false);
+  }, [analysis?.meta?.generated_at]);
+
+  return (
+    <>
+      {analysis && <VoiceAgent variant="floating" />}
+      <div className="max-w-7xl mx-auto px-4 py-10 space-y-10 animate-page-turn">
+        {isLoading && (
+          <Card className="border-2 border-border bg-card shadow-xl p-4 text-sm text-muted-foreground">
+            Running analysis… this may take a few moments while we ask the models.
           </Card>
-          <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 flex-1 h-0">
+        )}
+        {error && (
+          <Card className="border-2 border-destructive bg-destructive/10 text-destructive shadow-xl p-4 flex items-center justify-between gap-4">
+            <span>{error}</span>
+            {onRetry && (
+              <Button variant="outline" onClick={onRetry}>
+                Try again
+              </Button>
+            )}
+          </Card>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)] items-start">
+          <Card className="border-2 border-border bg-card paper-surface shadow-xl p-5 h-full overflow-auto pr-2">
+            <div className="flex items-start gap-2 mb-4">
+              {source ? (
+                <Badge variant="secondary" className="font-sans text-xs uppercase tracking-wider font-medium flex items-center gap-2">
+                  {source.mode === "link" ? <LinkIcon className="w-3.5 h-3.5" /> : <Search className="w-3.5 h-3.5" />}
+                  {source.mode === "link" ? "Article" : "Search"}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="font-sans text-xs uppercase tracking-wider font-medium">
+                  Search
+                </Badge>
+              )}
+            </div>
+
+            <h2 data-voice-title className="text-3xl font-bold font-display mb-4 text-primary leading-tight">
+              {analysis?.article.title ??
+                (source?.mode === "search" && source?.value
+                  ? source.value
+                  : source?.mode === "link"
+                  ? "Analyzing submitted article"
+                  : "Awaiting article")}
+            </h2>
+
+            <div data-voice-overview className="space-y-4 text-card-foreground font-sans text-sm leading-relaxed">
+              {analysis ? (
+                <>
+                  <p className="voice-underline-target">
+                    {articleSummary || "The narrative summary will appear here once analysis completes."}
+                  </p>
+                  {analysis.article.url && (
+                    <a
+                      href={analysis.article.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-primary underline underline-offset-4"
+                    >
+                      View original article
+                    </a>
+                  )}
+                  {selectionNote && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected article because: {selectionNote}
+                    </p>
+                  )}
+                  {primaryFacet && (
+                    <div className="pl-3 border-l-4 border-accent/70 my-3 py-1">
+                      <p className="text-xs text-muted-foreground font-semibold flex items-center gap-2 uppercase tracking-wider">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {primaryFacet.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">{facetDescription}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="italic text-muted-foreground">
+                  Submit an article or search term to generate a past echo.
+                </p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="border-2 border-border bg-card paper-surface shadow-xl p-6 flex-1 h-full">
             <div className="flex items-center gap-3 mb-6">
               <TrendingUp className="w-6 h-6 text-primary" strokeWidth={2} />
               <h3 className="text-2xl font-bold font-display text-primary">Narrative Analysis</h3>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-5 text-sm">
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Tone</p>
-                <p className="text-card-foreground font-sans text-base">Alarmist, urgency-driven</p>
+                <p className="text-card-foreground font-sans text-base">
+                  {analysis?.narrative_analysis.tone ?? "—"}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Emotional Cues</p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Fear</Badge>
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Uncertainty</Badge>
-                  <Badge variant="outline" className="bg-highlight/40 border-border font-sans">Crisis</Badge>
+                  {cuesToShow.length > 0 ? (
+                    cuesToShow.map((cue) => (
+                      <Badge key={cue} variant="outline" className="bg-highlight/40 border-border font-sans">
+                        {cue}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Bias Perspective</p>
-                <p className="text-card-foreground font-sans text-base">Economic catastrophization</p>
+                <p className="text-card-foreground font-sans text-sm">{biasSnippet || "—"}</p>
               </div>
               <div className="pt-6 border-t-2 border-border">
                 <p className="text-sm text-muted-foreground font-sans flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Similar to 2008 financial crisis framing
+                  {primaryEcho
+                    ? `${primaryEcho.historical_event}${primaryEcho.year ? ` (${primaryEcho.year})` : ""}`
+                    : "Historical echo will appear here"}
                 </p>
               </div>
+              {facets.length > 0 && (
+                <div className="pt-6 border-t border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                    Narrative Facets
+                  </p>
+                  <ul className="space-y-3">
+                    {facets.slice(0, 3).map(renderFacet)}
+                  </ul>
+                </div>
+              )}
             </div>
           </Card>
         </div>
-      </div>
-      {/* Article widget now sits in the left column above */}
 
-      {/* Historical Echo */}
-      <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 md:p-10">
-        <div className="flex items-center gap-3 mb-8">
-          <Calendar className="w-7 h-7 text-primary" strokeWidth={2} />
-          <h3 className="text-3xl font-bold font-display text-primary">Echo from the Past</h3>
-        </div>
-        
-        <div className="space-y-8" data-voice-echo>
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 bg-primary" />
-            <div className="h-0.5 flex-1 bg-gradient-to-r from-primary to-transparent" />
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">1930</span>
+        <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 md:p-10">
+          <div className="flex items-center gap-3 mb-6">
+            <Calendar className="w-7 h-7 text-primary" strokeWidth={2} />
+            <h3 className="text-3xl font-bold font-display text-primary">Echo from the Past</h3>
           </div>
-          
-          <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary">
-            <h4 className="font-bold text-2xl mb-4 text-primary font-display">The Smoot-Hawley Tariff Act (1930)</h4>
-            <p className="text-card-foreground font-sans text-base leading-relaxed mb-6 voice-underline-target">
-              During the Great Depression, newspapers used similarly alarmist language to describe 
-              trade disputes. The rhetoric of "unprecedented crisis" and "cascading effects" 
-              dominated coverage, much like today's narrative.
-            </p>
-            <div className="pt-6 border-t-2 border-border">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Historical Outcome:</p>
-              <p className="text-card-foreground font-sans text-base leading-relaxed voice-underline-target">
-                The tariff act contributed to a 66% decline in global trade and deepened the Depression. 
-                However, fear-driven reporting often oversimplified complex economic factors, 
-                missing nuance that could have fostered more measured policy responses.
-              </p>
+          <div className="space-y-4" data-voice-echo>
+            {echoes.length > 0 ? (
+              <>
+                <div className="overflow-x-auto pb-4">
+                  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+                    {visibleEchoes.map((echo, idx) => (
+                      <div
+                        key={`${echo.historical_event}-${echo.year}`}
+                        className="h-full fade-in-soft"
+                        style={{ animationDelay: `${idx * 90}ms` }}
+                      >
+                        {renderEchoCard(echo, setActiveEcho)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              {!showAllEchoes && echoes.length > 3 && (
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAllEchoes(true)}
+                    className="flex items-center gap-2"
+                  >
+                      Show more echoes
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-background/60 border-2 border-border rounded p-8 border-l-4 border-l-primary">
+                <p className="text-muted-foreground italic">
+                  Historical echoes will populate here after analysis completes.
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      <Dialog open={!!activeEcho} onOpenChange={(open) => !open && setActiveEcho(null)}>
+        <DialogContent className="max-w-5xl w-[70vw]">
+          <DialogHeader>
+            <DialogTitle>{activeEcho?.historical_event}</DialogTitle>
+            <DialogDescription className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <span>{activeEcho?.year}</span>
+                <span className="font-semibold text-primary">
+                  {activeEcho ? `${Math.round((activeEcho.resonance_score ?? 0) * 100)}% resonance` : ""}
+                </span>
+              </div>
+              {activeEcho?.parallel_reasoning && <p>{activeEcho.parallel_reasoning}</p>}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-base leading-relaxed">
+            {activeEcho?.source_excerpt && <p>{activeEcho.source_excerpt}</p>}
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Historical Outcome</h4>
+              <p>{activeEcho?.consequences_short}</p>
+              {activeEcho?.consequences_mid && <p>{activeEcho.consequences_mid}</p>}
+              {activeEcho?.consequences_long && <p>{activeEcho.consequences_long}</p>}
             </div>
+            {activeEcho?.source_url && (
+              <a
+                href={activeEcho.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-primary underline underline-offset-4"
+              >
+                View source
+              </a>
+            )}
+            {activeEcho?.tags?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {activeEcho.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="bg-highlight/40 border-border">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : null}
           </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="h-0.5 flex-1 bg-gradient-to-r from-transparent to-primary" />
-            <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Present Day</span>
-            <div className="w-2 h-2 bg-primary" />
-          </div>
-        </div>
-      </Card>
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

@@ -8,22 +8,25 @@ interface HeaderProps {
 export const Header = ({ onBack }: HeaderProps) => {
   return (
     <header className="py-6 md:py-8 px-4 animate-ink-draw border-b-2 border-border">
-      <div className="max-w-7xl mx-auto flex items-center gap-3">
-        {onBack && (
-          <Button variant="ghost" size="icon" onClick={onBack} aria-label="Go back">
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-        )}
-        <div className="flex-1 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-foreground mb-2">
-            PastPort
-          </h1>
-          <p className="text-base md:text-lg text-muted-foreground font-sans font-medium">
-            See today's news through yesterday's echoes.
-          </p>
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} aria-label="Go back" className="shrink-0">
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+          )}
+          <div className="text-left">
+            <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-foreground">
+              PastPort
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground font-sans font-medium mt-1">
+              See today's news through yesterday's echoes.
+            </p>
+          </div>
         </div>
-        {/* spacer to balance layout when back button is visible */}
-        {onBack && <div className="w-10" />}
+        <div className="hidden md:block text-sm text-muted-foreground font-sans">
+          Explore narratives • Compare echoes • Understand context
+        </div>
       </div>
     </header>
   );
