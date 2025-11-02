@@ -1,6 +1,6 @@
 ## Hackathon Notice — London VibeHack by Eurasian Hub (1 November 2025)
 
-This repository contains hackathon work produced during London VibeHack by Eurasian Hub on 1 November 2025. Expect rapid iteration, experimental ideas, and rough edges that will be refined post‑event.
+This repository contains hackathon work produced during London VibeHack by Eurasian Hub on 1 November 2025
 
 ## PastPort — Past Echoes Explorer
 
