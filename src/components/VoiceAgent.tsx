@@ -16,10 +16,11 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
   const currentIndexRef = useRef<number>(0);
   const nodesRef = useRef<HTMLElement[]>([]);
   const voiceUsedRef = useRef<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState<"historian" | "storyteller" | "analyst">("historian");
+  const [selectedVoice, setSelectedVoice] = useState<"anchor" | "historian" | "storyteller" | "analyst">("anchor");
   // Chat UI removed — keeping only voice narration controls
 
   const VOICES: Record<string, { id: string; label: string } > = {
+    anchor: { id: "AZnzlk1XvdvUeBnXmlld", label: "Anchor · news" }, // clear, news-like female
     historian: { id: "21m00Tcm4TlvDq8ikWAM", label: "Historian" }, // calm, authoritative
     storyteller: { id: "AZnzlk1XvdvUeBnXmlld", label: "Storyteller" }, // warm, expressive
     analyst: { id: "EXAVITQu4vr4xnSDxMaL", label: "Analyst" }, // neutral, concise
@@ -71,6 +72,7 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
     setIsLoading(false);
     onPlayStateChange?.(false);
     clearAllHighlights();
+    try { document.body.classList.remove('voice-breathing'); } catch {}
   }, [onPlayStateChange]);
 
   const fetchTtsBlob = async (text: string, voiceId: string) => {
@@ -86,6 +88,28 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
     const blob = await resp.blob();
     return blob;
   };
+
+  const speakWithWebSpeech = (text: string) => new Promise<void>((resolve) => {
+    try {
+      const synth: SpeechSynthesis | undefined = (typeof window !== 'undefined') ? window.speechSynthesis : undefined;
+      if (!synth) return resolve();
+      const utter = new SpeechSynthesisUtterance(text);
+      const chooseVoice = () => {
+        const voices = synth.getVoices();
+        const isEn = (v: SpeechSynthesisVoice) => (v.lang || '').toLowerCase().startsWith('en');
+        const candidates = voices.filter(isEn);
+        const prefer = (name: string) => candidates.find((v) => (v.name || '').toLowerCase().includes(name));
+        return (
+          prefer('female') || prefer('google uk english female') || prefer('samantha') || prefer('victoria') || prefer('google us english') || candidates[0] || voices[0]
+        );
+      };
+      const v = chooseVoice();
+      if (v) utter.voice = v;
+      utter.rate = 1.0; utter.pitch = 1.0;
+      utter.onend = () => resolve();
+      synth.speak(utter);
+    } catch { resolve(); }
+  });
 
   const playParagraphAt = useCallback(async (index: number) => {
     const nodes = nodesRef.current;
@@ -106,37 +130,42 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
       highlightNode(node);
       const voiceId = VOICES[selectedVoice].id;
       voiceUsedRef.current = voiceId;
-      const blob = await fetchTtsBlob(text, voiceId);
-      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
-      const url = URL.createObjectURL(blob);
-      audioUrlRef.current = url;
-      let audio = audioRef.current;
-      if (!audio) {
-        audio = new Audio();
-        audioRef.current = audio;
-      }
-      audio.src = url;
-      audio.onended = () => {
-        // move to next paragraph
+      let usedFallback = false;
+      try {
+        const blob = await fetchTtsBlob(text, voiceId);
+        if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+        const url = URL.createObjectURL(blob);
+        audioUrlRef.current = url;
+        let audio = audioRef.current;
+        if (!audio) {
+          audio = new Audio();
+          audioRef.current = audio;
+        }
+        audio.src = url;
+        audio.onended = () => { playParagraphAt(currentIndexRef.current + 1); };
+        audio.onpause = () => {
+          setIsPaused(true);
+          setIsPlaying(false);
+          onPlayStateChange?.(false);
+          clearAllHighlights();
+          try { document.body.classList.remove('voice-breathing'); } catch {}
+        };
+        audio.ontimeupdate = () => {};
+        await audio.play();
+      } catch {
+        usedFallback = true;
+        await speakWithWebSpeech(text);
+        // proceed to next paragraph after TTS fallback
         playParagraphAt(currentIndexRef.current + 1);
-      };
-      audio.onpause = () => {
-        setIsPaused(true);
-        setIsPlaying(false);
-        onPlayStateChange?.(false);
-        clearAllHighlights();
-      };
-      audio.ontimeupdate = () => {
-        // reserved for future per-phrase sync
-      };
-      await audio.play();
+      }
       setIsPlaying(true);
       setIsPaused(false);
       onPlayStateChange?.(true);
+      try { document.body.classList.add('voice-breathing'); } catch {}
     } catch (err: any) {
       const message = typeof err?.message === 'string' ? err.message : 'Narration failed';
       if (message.includes('Missing ELEVENLABS_API_KEY')) {
-        toast({ title: 'API key missing', description: 'Set ELEVENLABS_API_KEY in your environment and restart the dev server.' });
+        toast({ title: 'API key missing', description: 'Set ELEVENLABS_API_KEY or the app will use your browser voice.' });
       } else {
         toast({ title: 'Narration failed', description: message });
       }
@@ -168,6 +197,7 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
         setIsPaused(false);
         setIsPlaying(true);
         onPlayStateChange?.(true);
+      try { document.body.classList.add('voice-breathing'); } catch {}
       }).catch(() => stopAll());
       return;
     }
@@ -244,6 +274,7 @@ export const VoiceAgent = ({ onPlayStateChange, variant = "floating" }: VoiceAge
               background: "hsl(var(--card))",
             }}
           >
+            <option value="anchor">Anchor · news</option>
             <option value="historian">Historian · calm</option>
             <option value="storyteller">Storyteller · warm</option>
             <option value="analyst">Analyst · neutral</option>

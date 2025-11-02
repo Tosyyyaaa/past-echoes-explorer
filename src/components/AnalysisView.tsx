@@ -47,7 +47,9 @@ const renderFacet = (facet: NarrativeFacet) => (
       {facet.supporting_quotes?.length > 0 && (
         <ul className="mt-2 space-y-1 text-sm italic text-muted-foreground">
           {facet.supporting_quotes.map((quote, idx) => (
-            <li key={idx}>"{quote}"</li>
+            <li key={idx}>
+              <span className="quote-highlight">“{quote}”</span>
+            </li>
           ))}
         </ul>
       )}
@@ -140,7 +142,7 @@ export const AnalysisView = ({
               )}
             </div>
 
-            <h2 data-voice-title className="text-3xl font-bold font-display mb-4 text-primary leading-tight">
+            <h2 data-voice-title className="text-3xl font-bold font-display mb-4 text-primary leading-tight headline-ink">
               {analysis?.article.title ??
                 (source?.mode === "search" && source?.value
                   ? source.value
@@ -148,7 +150,6 @@ export const AnalysisView = ({
                   ? "Analyzing submitted article"
                   : "Awaiting article")}
             </h2>
-
             <div data-voice-overview className="space-y-4 text-card-foreground font-sans text-sm leading-relaxed">
               {analysis ? (
                 <>
@@ -240,7 +241,7 @@ export const AnalysisView = ({
           </Card>
         </div>
 
-        <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 md:p-10">
+        <Card className="border-2 border-border bg-card paper-surface shadow-xl p-8 md:p-10 clipping">
           <div className="flex items-center gap-3 mb-6">
             <Calendar className="w-7 h-7 text-primary" strokeWidth={2} />
             <h3 className="text-3xl font-bold font-display text-primary">Echo from the Past</h3>
@@ -286,10 +287,10 @@ export const AnalysisView = ({
       </div>
 
       <Dialog open={!!activeEcho} onOpenChange={(open) => !open && setActiveEcho(null)}>
-        <DialogContent className="max-w-5xl w-[70vw]">
+        <DialogContent className="max-w-5xl w-[90vw] md:w-[72vw] p-6 md:p-8">
           <DialogHeader>
             <DialogTitle>{activeEcho?.historical_event}</DialogTitle>
-            <DialogDescription className="space-y-2 text-sm text-muted-foreground">
+            <DialogDescription className="space-y-2 text-sm md:text-base text-muted-foreground">
               <div className="flex items-center justify-between">
                 <span>{activeEcho?.year}</span>
                 <span className="font-semibold text-primary">
@@ -299,10 +300,10 @@ export const AnalysisView = ({
               {activeEcho?.parallel_reasoning && <p>{activeEcho.parallel_reasoning}</p>}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 text-base leading-relaxed">
+          <div className="space-y-6 md:space-y-7 text-base md:text-[1.05rem] leading-8">
             {activeEcho?.source_excerpt && <p>{activeEcho.source_excerpt}</p>}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Historical Outcome</h4>
+            <div className="space-y-3 mt-2 pt-4 border-t border-dashed border-border/60">
+              <h4 className="text-xl font-bold font-display uppercase tracking-wide text-primary">Historical Outcome</h4>
               <p>{activeEcho?.consequences_short}</p>
               {activeEcho?.consequences_mid && <p>{activeEcho.consequences_mid}</p>}
               {activeEcho?.consequences_long && <p>{activeEcho.consequences_long}</p>}
@@ -312,15 +313,19 @@ export const AnalysisView = ({
                 href={activeEcho.source_url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-sm text-primary underline underline-offset-4"
+                className="text-sm text-primary underline underline-offset-4 hover:text-foreground transition-colors"
               >
                 View source
               </a>
             )}
             {activeEcho?.tags?.length ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 {activeEcho.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="bg-highlight/40 border-border">
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="rounded-full bg-highlight/25 text-foreground/90 border-dashed border-border/70 shadow-[inset_0_0_0_1px_hsl(var(--border)/0.6),0_2px_6px_hsl(var(--ink)/0.25)] px-3 py-1 transition-all hover:shadow-[inset_0_0_0_1px_hsl(var(--border)/0.8),0_4px_10px_hsl(var(--ink)/0.32)]"
+                  >
                     {tag}
                   </Badge>
                 ))}

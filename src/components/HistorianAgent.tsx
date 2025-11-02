@@ -37,6 +37,23 @@ export default function HistorianAgent({ context }: HistorianAgentProps) {
         audio.src = data.audioUrl;
         setIsSpeaking(true);
         await audio.play().catch(() => setIsSpeaking(false));
+      } else if (data.text) {
+        // Fallback to Web Speech API when ElevenLabs audio is unavailable
+        const synth: SpeechSynthesis | undefined = (typeof window !== 'undefined') ? window.speechSynthesis : undefined;
+        if (synth) {
+          try {
+            const utter = new SpeechSynthesisUtterance(data.text);
+            utter.rate = 1.0;
+            utter.pitch = 1.0;
+            utter.onend = () => setIsSpeaking(false);
+            setIsSpeaking(true);
+            synth.speak(utter);
+          } catch {
+            // ignore
+          }
+        } else {
+          toast({ title: 'Speech unavailable', description: 'Enable TTS or set ELEVENLABS_API_KEY to hear narration.' });
+        }
       }
     } catch (e: any) {
       toast({ title: 'Historian error', description: String(e?.message || e) });

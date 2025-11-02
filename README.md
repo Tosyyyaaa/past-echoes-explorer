@@ -1,77 +1,112 @@
-# Welcome to your Lovable project
+## Hackathon Notice — London VibeHack by Eurasian Hub (1 November 2025)
 
-# TO RUN
-bash run_backend.sh
-npm dev run
+This repository contains hackathon work produced during London VibeHack by Eurasian Hub on 1 November 2025. Expect rapid iteration, experimental ideas, and rough edges that will be refined post‑event.
 
-## Project info
+## PastPort — Past Echoes Explorer
 
-**URL**: https://lovable.dev/projects/e6818bb5-2a5a-4e90-80ba-cd69b2e66c5e
+Uncover historical echoes behind modern narratives. Paste a news article or a topic, and PastPort surfaces narrative analysis and historically resonant events with sources and concise consequences — helping readers reason with context, not just headlines.
 
-## How can I edit this code?
+### What it does
+- **Narrative analysis**: Extracts tone, emotional cues, bias/frame, and key narrative facets.
+- **Historical echoes**: Finds historically resonant events per facet with source links and significance.
+- **Search-to-article**: If you don’t have an article, provide a query; the system discovers a credible piece to analyse.
+- **Transparent prompts**: Stores the prompts used and basic metadata for traceability.
 
-There are several ways of editing your application.
+### Why it matters
+- **Context combats noise**: It’s easier to think clearly about current events when you can see patterns play out over time.
+- **Explainable**: Each echo includes a short justification and consequences to aid critical reading.
 
-**Use Lovable**
+## Architecture
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e6818bb5-2a5a-4e90-80ba-cd69b2e66c5e) and start prompting.
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                           Frontend (Vite + React + TS)             │
+│  UI (shadcn-ui, Tailwind) → Calls FastAPI endpoints                │
+└────────────────────────────────────────────────────────────────────┘
+                 ▲                                        │
+                 │ HTTP (JSON)                             │
+                 │                                        ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                         Backend (FastAPI, Python)                  │
+│  /api/analyze → pipeline →                                         │
+│   - OpenAI: narrative analysis (JSON)                              │
+│   - Perplexity: historical echoes (JSON)                           │
+│  Output saved under output/ with metadata                          │
+└────────────────────────────────────────────────────────────────────┘
+```
 
-Changes made via Lovable will be committed automatically to this repo.
+### Core tech
+- **Frontend**: Vite, React, TypeScript, shadcn‑ui, Tailwind CSS
+- **Backend**: FastAPI, httpx, uvicorn, trafilatura
+- **AI**: OpenAI (narrative JSON), Perplexity (echoes JSON)
 
-**Use your preferred IDE**
+## Prerequisites
+- Node.js 18+ and npm
+- Python 3.11+
+- API keys: `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Quick start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# 1) Python env + backend deps
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+# 2) Frontend deps
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 3) Configure environment (recommended)
+cat > .env << 'EOF'
+OPENAI_API_KEY=sk-your-openai-key
+PERPLEXITY_API_KEY=pplx-your-perplexity-key
+EOF
+
+# 4) Run backend (http://localhost:8000)
+bash run_backend.sh
+
+# 5) In a new terminal, run frontend (http://localhost:5173)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Notes:
+- The backend enables CORS for `http://localhost:5173` (Vite default) and `http://localhost:3000`, plus a permissive `*` during hackathon testing.
+- The script `run_backend.sh` will attempt to create/load `.env`. Replace any placeholder keys with your own. Never commit real keys.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Configuration
 
-**Use GitHub Codespaces**
+Create `.env` with:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+OPENAI_API_KEY=sk-...
+PERPLEXITY_API_KEY=pplx-...
+```
 
-## What technologies are used for this project?
+Defaults:
+- OpenAI model: `gpt-4.1-mini`
+- Perplexity model: `sonar`
 
-This project is built with:
+## API reference (FastAPI)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Base URL: `http://localhost:8000`
 
-## How can I deploy this project?
+### GET `/api/status`
+Returns service status.
 
-Simply open [Lovable](https://lovable.dev/projects/e6818bb5-2a5a-4e90-80ba-cd69b2e66c5e) and click on Share -> Publish.
+### POST `/api/analyze`
+Analyse an article by URL, raw text, or a `searchQuery` that discovers an article for you.
 
-## Can I connect a custom domain to my Lovable project?
+### POST `/api/output/clear`
+Clears the generated `output/` directory.
 
-Yes, you can!
+## Security & privacy
+- Do not commit real API keys. Prefer local `.env` files and secret managers in production.
+- `run_backend.sh` contains hackathon conveniences. Replace any placeholder keys with your own; treat it as development‑only.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Limitations (hackathon cut)
+- Echo discovery quality depends on external models and may vary.
+- Timeouts and rate limits are minimally tuned for demo purposes.
+- Deduplication/scoring can be improved with richer signals.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Licence
+Hackathon demonstration code. For use beyond the event, add an explicit licence and harden security/ops.

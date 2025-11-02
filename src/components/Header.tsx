@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export const Header = ({ onBack }: HeaderProps) => {
   return (
-    <header className="py-6 md:py-8 px-4 animate-ink-draw border-b-2 border-border">
+    <header className="py-6 md:py-8 px-4 animate-ink-draw border-b-2 border-border paper-surface">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           {onBack && (
@@ -16,16 +16,13 @@ export const Header = ({ onBack }: HeaderProps) => {
             </Button>
           )}
           <div className="text-left">
-            <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-foreground">
+            <h1 className="text-5xl md:text-6xl font-bold font-display tracking-tight text-foreground headline-ink">
               PastPort
             </h1>
-            <p className="text-sm md:text-base text-muted-foreground font-sans font-medium mt-1">
+            <p className="text-sm md:text-base text-muted-foreground font-serifbody italic mt-1">
               See today's news through yesterday's echoes.
             </p>
           </div>
-        </div>
-        <div className="hidden md:block text-sm text-muted-foreground font-sans">
-          Explore narratives • Compare echoes • Understand context
         </div>
       </div>
     </header>

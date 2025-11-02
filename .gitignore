@@ -25,3 +25,13 @@ dist-ssr
 
 # Local npm cache
 .npm-cache/
+
+# Python & env
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+
+# App output
+output/
