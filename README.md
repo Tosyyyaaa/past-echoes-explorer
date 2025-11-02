@@ -1,6 +1,6 @@
 ## Hackathon Work — London VibeHack by Eurasian Hub (1 November 2025)
 
-This repository contains hackathon work that placed 2nd on the London VibeHack. 
+This repository contains hackathon work that placed 2nd on the London VibeHack. \n
 Sponsors whose tools were used in the project: Perplexity, OpenAI
 
 ## PastPort — Past Echoes Explorer
